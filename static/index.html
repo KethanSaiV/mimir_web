@@ -1,0 +1,938 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>MIMIR — Preview</title>
+<style>
+  @font-face{
+    font-family:'Rajdhani'; font-weight:300; font-style:normal;
+    src:url('/vendor/fonts/rajdhani-latin-300-normal.woff2') format('woff2');
+    font-display:swap;
+  }
+  @font-face{
+    font-family:'Rajdhani'; font-weight:400; font-style:normal;
+    src:url('/vendor/fonts/rajdhani-latin-400-normal.woff2') format('woff2');
+    font-display:swap;
+  }
+  @font-face{
+    font-family:'Rajdhani'; font-weight:500; font-style:normal;
+    src:url('/vendor/fonts/rajdhani-latin-500-normal.woff2') format('woff2');
+    font-display:swap;
+  }
+  @font-face{
+    font-family:'Rajdhani'; font-weight:600; font-style:normal;
+    src:url('/vendor/fonts/rajdhani-latin-600-normal.woff2') format('woff2');
+    font-display:swap;
+  }
+  @font-face{
+    font-family:'Rajdhani'; font-weight:700; font-style:normal;
+    src:url('/vendor/fonts/rajdhani-latin-700-normal.woff2') format('woff2');
+    font-display:swap;
+  }
+  @font-face{
+    font-family:'Syncopate'; font-weight:400; font-style:normal;
+    src:url('/vendor/fonts/syncopate-latin-400-normal.woff2') format('woff2');
+    font-display:swap;
+  }
+  @font-face{
+    font-family:'Syncopate'; font-weight:700; font-style:normal;
+    src:url('/vendor/fonts/syncopate-latin-700-normal.woff2') format('woff2');
+    font-display:swap;
+  }
+  :root{
+    --teal-deep:#0a2b24; --teal-core:#117e60; --teal-mid:#1c9c78; --teal-glow:#74bda8;
+    --cream:#f0ede4;
+    --bg-0:#000000; --bg-1:#060907; --bg-2:#0d100e; --bg-3:#141915;
+    --line-1:#1a201c; --line-2:#232b25; --line-3:#2d372f;
+    --text-1:#f0ede4; --text-2:#cdd6d0; --text-3:#94a49b; --text-4:#657268; --text-5:#454f49;
+    --amber:#d9a441; --red:#c9564f;
+    --radius-lg:14px; --radius-md:10px; --radius-sm:7px;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0; background:#000000;
+    color:var(--text-2); font-family:'Rajdhani',sans-serif; font-size:15px;
+    height:100vh; overflow:hidden; position:relative;
+  }
+  .ambient-glow{
+    position:fixed; inset:-10%; pointer-events:none; z-index:0;
+    background:
+      radial-gradient(1100px 700px at 20% -15%, rgba(17,126,96,.22), transparent 55%),
+      radial-gradient(900px 600px at 85% 10%, rgba(17,126,96,.10), transparent 60%);
+    will-change:transform;
+  }
+  header, .layout{ position:relative; z-index:1; }
+  .display{font-family:'Syncopate',sans-serif;}
+  ::-webkit-scrollbar{width:9px; height:9px;}
+  ::-webkit-scrollbar-track{background:transparent;}
+  ::-webkit-scrollbar-thumb{background:var(--line-3); border-radius:5px;}
+  ::-webkit-scrollbar-thumb:hover{background:var(--teal-core);}
+
+  /* ── Header ─────────────────────────────── */
+  header{
+    height:76px; display:flex; align-items:center; padding:0 26px; gap:28px;
+    background:linear-gradient(100deg, #061410 0%, #050807 45%, rgba(0,0,0,0) 100%);
+    border-bottom:1px solid rgba(17,126,96,.45);
+    position:relative; z-index:5;
+  }
+  .brand{display:flex; align-items:center; gap:12px; min-width:260px;}
+  .brand img{height:42px; width:42px; object-fit:contain; filter:drop-shadow(0 0 8px rgba(17,126,96,.6));}
+  .brand-text{display:flex; flex-direction:column; gap:3px;}
+  .wordmark{font-family:'Syncopate',sans-serif; font-size:19px; font-weight:700; letter-spacing:5px; color:var(--text-1);}
+  .wordmark .dot{color:var(--teal-glow); margin:0 3px;}
+  .tagline{font-family:'Rajdhani',sans-serif; font-size:9.5px; font-weight:600; letter-spacing:2px; color:var(--teal-glow); text-transform:uppercase;}
+
+  nav{
+    display:flex; gap:2px; background:rgba(0,0,0,.5); border:1px solid var(--line-1);
+    border-radius:24px; padding:5px; position:relative; margin:0 auto;
+    backdrop-filter:blur(6px);
+  }
+  nav .pill-indicator{
+    position:absolute; top:5px; left:5px; height:38px; border-radius:19px;
+    background:linear-gradient(135deg, var(--teal-glow), var(--teal-deep));
+    box-shadow:0 0 24px 2px rgba(17,126,96,.65);
+    transition:left .28s cubic-bezier(.4,0,.2,1), width .28s cubic-bezier(.4,0,.2,1);
+    z-index:0;
+  }
+  nav button{
+    position:relative; z-index:1; background:transparent; border:none; cursor:pointer;
+    color:var(--text-4); font-family:'Rajdhani',sans-serif; font-size:12.5px; font-weight:700;
+    letter-spacing:1px; padding:9px 16px; border-radius:19px; height:38px;
+    display:flex; align-items:center; gap:8px; transition:color .18s ease;
+    text-transform:uppercase; white-space:nowrap;
+  }
+  nav button:hover{color:var(--text-2);}
+  nav button.active{color:var(--text-1);}
+
+  .lock-indicator{display:flex; align-items:center; gap:6px; min-width:260px; justify-content:flex-end;
+    font-size:10px; font-weight:700; letter-spacing:1px; color:var(--text-5); text-transform:uppercase;}
+
+  /* ── Layout ──────────────────────────────── */
+  .layout{display:flex; height:calc(100vh - 76px);}
+  .sidebar{width:280px; padding:18px; display:flex; flex-direction:column; gap:14px; overflow-y:auto;}
+  .sidebar.right{width:340px;}
+  .viewer{flex:1; padding:18px; display:flex; flex-direction:column; gap:14px; min-width:0;}
+
+  /* ── Cards ───────────────────────────────── */
+  .card{
+    background:var(--bg-2); border:1px solid var(--line-1); border-left:3px solid var(--teal-core);
+    border-radius:var(--radius-lg); padding:16px;
+    box-shadow:0 10px 28px rgba(0,0,0,.55);
+  }
+  .card-title{font-family:'Syncopate',sans-serif; font-size:11px; font-weight:700; letter-spacing:2px; color:var(--teal-glow);
+    text-transform:uppercase; margin:0 0 14px;}
+
+  .btn{
+    display:flex; align-items:center; gap:10px; justify-content:center;
+    background:var(--bg-3); border:1px solid var(--line-3); color:var(--text-2);
+    font-family:'Rajdhani',sans-serif; font-size:14px; font-weight:700; letter-spacing:.5px;
+    border-radius:var(--radius-md); padding:12px 16px; cursor:pointer;
+    transition:all .18s ease; text-transform:uppercase;
+  }
+  .btn:hover{background:var(--line-2); border-color:var(--teal-mid); color:var(--text-1); transform:translateY(-1px);}
+  .btn svg{width:15px;height:15px;}
+
+  .btn-primary{
+    background:linear-gradient(135deg, var(--teal-mid), var(--teal-deep));
+    border:1px solid var(--teal-core); color:var(--text-1);
+  }
+  .btn-primary:hover{
+    background:linear-gradient(135deg, var(--teal-glow), var(--teal-mid));
+    box-shadow:0 0 26px rgba(17,126,96,.55); transform:translateY(-1px);
+  }
+
+  .meta-row{display:flex; justify-content:space-between; font-size:13px; padding:5px 0; color:var(--text-4);}
+  .meta-row b{color:var(--text-3); font-weight:600;}
+
+  /* ── Stat readouts ───────────────────────── */
+  .stat-row{display:flex; justify-content:space-between; align-items:baseline; margin-bottom:6px;}
+  .stat-label{font-family:'Syncopate',sans-serif; font-size:9px; font-weight:700; letter-spacing:1.6px; color:var(--text-5);}
+  .stat-value{font-size:27px; font-weight:700; font-family:'Rajdhani',monospace; color:var(--text-1);}
+  input[type=range]{
+    -webkit-appearance:none; width:100%; height:4px; border-radius:2px;
+    background:linear-gradient(90deg, var(--teal-core) var(--val,40%), var(--line-2) 0);
+    margin:8px 0 16px;
+  }
+  input[type=range]::-webkit-slider-thumb{
+    -webkit-appearance:none; width:16px; height:16px; border-radius:50%;
+    background:var(--teal-glow); box-shadow:0 0 8px rgba(17,126,96,.8); cursor:pointer;
+  }
+  .preset-row{display:flex; gap:8px;}
+  .preset-row .btn{flex:1; padding:8px; font-size:12.5px;}
+
+  select.styled-select{
+    width:100%; background:var(--bg-3); color:var(--text-1); border:1px solid var(--line-3);
+    border-radius:8px; padding:10px 12px; font-family:'Rajdhani',sans-serif; font-size:14px;
+    font-weight:600; cursor:pointer; margin-bottom:12px; appearance:none;
+    background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%2371827e'><path d='M7 10l5 5 5-5z'/></svg>");
+    background-repeat:no-repeat; background-position:right 10px center; background-size:16px;
+  }
+  select.styled-select:hover{border-color:var(--teal-core);}
+  select.styled-select:focus{outline:none; border-color:var(--teal-glow);}
+
+  /* ── Toggle switch ───────────────────────── */
+  .toggle-row{display:flex; justify-content:space-between; align-items:center;}
+  .toggle-label{font-size:14px; font-weight:600; color:var(--text-2);}
+  .switch{width:46px; height:26px; border-radius:13px; background:var(--line-2);
+    position:relative; cursor:pointer; transition:background .2s ease; flex-shrink:0;}
+  .switch.on{background:linear-gradient(135deg, var(--teal-mid), var(--teal-deep));}
+  .switch .knob{position:absolute; top:3px; left:3px; width:20px; height:20px; border-radius:50%;
+    background:var(--text-4); transition:left .18s cubic-bezier(.4,0,.2,1), background .18s ease;}
+  .switch.on .knob{left:23px; background:var(--cream);}
+
+  /* ── Viewer canvas / empty state ─────────── */
+  .mode-strip{
+    background:var(--bg-2); border:1px solid var(--line-1); border-radius:var(--radius-sm);
+    text-align:center; padding:9px; font-family:'Syncopate',sans-serif; font-size:11px; font-weight:700; letter-spacing:2px;
+    color:var(--amber);
+  }
+  .canvas{
+    flex:1; background:var(--bg-0); border:1px solid var(--line-1); border-radius:var(--radius-lg);
+    display:flex; align-items:center; justify-content:center; position:relative; overflow:hidden;
+  }
+  #canvas3d{ position:absolute; inset:0; }
+  #canvas3d canvas{ width:100% !important; height:100% !important; display:block; }
+  .empty-state{display:flex; flex-direction:column; align-items:center; gap:16px; max-width:380px; text-align:center;}
+  .empty-icon{width:60px; height:60px; opacity:.4;}
+  .empty-head{font-family:'Syncopate',sans-serif; font-size:18px; font-weight:700; color:var(--text-4); letter-spacing:1px; text-transform:uppercase;}
+  .empty-sub{font-size:14px; color:var(--text-5); line-height:1.5;}
+
+  .viewer-nav{display:flex; gap:12px;}
+  .viewer-nav .btn{flex:1;}
+
+  /* ── Camera panel ────────────────────────── */
+  .cam-title{display:flex; align-items:center; gap:8px; justify-content:center;
+    font-family:'Syncopate',sans-serif; font-size:11px; font-weight:700; letter-spacing:2px; color:var(--teal-glow); margin-bottom:10px;}
+  .cam-feed{background:var(--bg-0); border:1px solid var(--line-2); border-radius:var(--radius-md);
+    aspect-ratio:4/3; display:flex; align-items:center; justify-content:center; color:var(--text-5); font-size:12px;}
+  .cam-status{display:flex; align-items:center; gap:8px; margin-top:12px; font-size:13px; font-weight:600; color:var(--teal-glow);}
+  .pulse-dot{width:8px; height:8px; border-radius:50%; background:var(--teal-glow); animation:pulse 1.1s ease-in-out infinite;}
+  @keyframes pulse{0%,100%{opacity:1;} 50%{opacity:.3;}}
+  .gesture-box{margin-top:12px; background:var(--bg-3); border:1px solid var(--teal-core); border-radius:var(--radius-md);
+    padding:16px; text-align:center;}
+  .gesture-status{color:var(--teal-glow); font-weight:700; font-size:15px; margin-bottom:6px;}
+  .lock-pill{font-size:10px; font-weight:700; letter-spacing:1px; color:var(--text-4); text-transform:uppercase;}
+</style>
+<script type="importmap">
+{
+  "imports": {
+    "three": "/vendor/three.module.js",
+    "three/addons/controls/OrbitControls.js": "/vendor/OrbitControls.js"
+  }
+}
+</script>
+</head>
+<body>
+<div class="ambient-glow" id="ambientGlow"></div>
+
+<header>
+  <div class="brand">
+    <img src="assets/mimir-emblem.png" alt="Mimir emblem">
+    <div class="brand-text">
+      <div class="wordmark">M<span class="dot">·</span>I<span class="dot">·</span>M<span class="dot">·</span>I<span class="dot">·</span>R</div>
+      <div class="tagline">Gesture-Guided Surgical Intelligence</div>
+    </div>
+  </div>
+
+  <nav id="nav">
+    <div class="pill-indicator" id="pill"></div>
+    <button class="active" data-i="0">DICOM</button>
+    <button data-i="1" id="tab3d">3D VIEW</button>
+    <button data-i="2" id="tabFilter">FILTER</button>
+    <button data-i="3" id="tabSegment">SEGMENT</button>
+    <button data-i="4">REGISTER</button>
+    <button data-i="5">PATH PLAN</button>
+    <button data-i="6">MEASURE</button>
+    <button data-i="7">REVIEW</button>
+  </nav>
+
+  <div class="lock-indicator">Unlocked</div>
+</header>
+
+<div class="layout">
+  <div class="sidebar">
+    <button class="btn" onclick="openFile()">📁 Open DICOM File</button>
+    <button class="btn" onclick="openFolder()">🗂 Open DICOM Folder</button>
+
+    <div class="card">
+      <div class="card-title">Patient Info</div>
+      <div class="meta-row"><span>Patient</span><b id="m-patient">—</b></div>
+      <div class="meta-row"><span>Modality</span><b id="m-modality">—</b></div>
+      <div class="meta-row"><span>Study Date</span><b id="m-date">—</b></div>
+      <div class="meta-row"><span>Rows</span><b id="m-rows">—</b></div>
+      <div class="meta-row"><span>Columns</span><b id="m-cols">—</b></div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Windowing</div>
+      <div class="stat-row"><span class="stat-label">LEVEL (WL)</span><span class="stat-value" id="wlv">40</span></div>
+      <input type="range" id="wlSlider" min="-1000" max="3000" value="40" style="--val:34%" oninput="onWindowInput()">
+      <div class="stat-row"><span class="stat-label">WIDTH (WW)</span><span class="stat-value" id="wwv">400</span></div>
+      <input type="range" id="wwSlider" min="1" max="4000" value="400" style="--val:10%" oninput="onWindowInput()">
+      <div class="preset-row">
+        <button class="btn" onclick="applyPreset(40,80)">Brain</button>
+        <button class="btn" onclick="applyPreset(-600,1500)">Lung</button>
+        <button class="btn" onclick="applyPreset(400,1800)">Bone</button>
+      </div>
+    </div>
+
+    <div class="card" id="cardSegment" style="display:none;">
+      <div class="card-title">AI Segmentation</div>
+      <button class="btn btn-primary" id="btnRunSegment" onclick="runSegmentation()" style="width:100%; margin-bottom:12px; justify-content:center;">Run Segmentation</button>
+
+      <div id="segProgressWrap" style="display:none;">
+        <div class="stat-label" style="margin-bottom:6px; display:block;">PROGRESS</div>
+        <div id="segLog" style="background:var(--bg-0); border:1px solid var(--line-2); border-radius:8px; padding:8px; height:90px; overflow-y:auto; font-family:monospace; font-size:10px; color:var(--text-3); margin-bottom:12px; line-height:1.5;"></div>
+      </div>
+
+      <div id="segErrorWrap" style="display:none; color:#c9564f; font-size:12px; margin-bottom:12px;"></div>
+
+      <div class="toggle-row" id="segToggleRow" style="display:none;">
+        <span class="toggle-label">Show Overlay</span>
+        <div class="switch" id="swSeg" onclick="onToggleOverlay()"><div class="knob"></div></div>
+      </div>
+
+      <div id="segOpacityWrap" style="display:none; margin-top:12px;">
+        <div class="stat-row"><span class="stat-label">OPACITY</span><span class="stat-value" id="segOpacityV" style="font-size:18px;">45%</span></div>
+        <input type="range" id="segOpacitySlider" min="0" max="100" value="45" style="--val:45%" oninput="onOpacityInput()">
+      </div>
+
+      <div id="segLegend" style="display:none; margin-top:12px; max-height:220px; overflow-y:auto;"></div>
+    </div>
+
+    <div class="card" id="cardFilter" style="display:none;">
+      <div class="card-title">Image Filters</div>
+      <select id="filterSelect" class="styled-select" onchange="onFilterChange()">
+        <option>None (Original)</option>
+      </select>
+      <div class="stat-row"><span class="stat-label">STRENGTH</span><span class="stat-value" id="filterStrengthV" style="font-size:18px;">1.0</span></div>
+      <input type="range" id="filterStrengthSlider" min="0.1" max="2.0" step="0.1" value="1.0" style="--val:45%" oninput="onFilterStrengthInput()">
+    </div>
+
+    <div class="card" id="card3d" style="display:none;">
+      <div class="card-title">3D Rendering</div>
+      <div class="stat-row"><span class="stat-label" id="isoLabel">ISO VALUE</span><span class="stat-value" id="isov">300</span></div>
+      <input type="range" id="isoSlider" min="-200" max="2000" value="300" style="--val:25%" oninput="onIsoInput()">
+      <div class="preset-row" style="margin-top:6px;">
+        <button class="btn" onclick="applyIsoPreset('bone')">Bone</button>
+        <button class="btn" onclick="applyIsoPreset('soft')">Soft Tissue</button>
+        <button class="btn" onclick="applyIsoPreset('skin')">Skin</button>
+      </div>
+      <div id="meshInfo" style="margin-top:10px; font-size:11px; color:var(--text-5);"></div>
+    </div>
+  </div>
+
+  <div class="viewer">
+    <div class="mode-strip" id="modeStrip">MODE — CT</div>
+    <div class="canvas">
+      <div class="empty-state" id="emptyState">
+        <img src="assets/mimir-emblem.png" class="empty-icon" alt="">
+        <div class="empty-head">No Scan Loaded</div>
+        <div class="empty-sub">Open a DICOM file or folder to begin viewing, filtering, segmenting, registering, and planning needle paths.</div>
+        <button class="btn btn-primary" style="margin-top:6px; padding:13px 26px;" onclick="openFile()">📁 Open DICOM File</button>
+      </div>
+      <img id="sliceImg" style="display:none; max-width:100%; max-height:100%; object-fit:contain;">
+      <div id="canvas3d" style="opacity:0; pointer-events:none; width:100%; height:100%;"></div>
+      <div id="loading3d" style="display:none; position:absolute; color:var(--teal-glow); font-family:'Syncopate',sans-serif; font-size:12px; letter-spacing:2px;">BUILDING MESH…</div>
+    </div>
+    <div class="viewer-nav">
+      <button class="btn" onclick="navSlice(-1)">◀ Prev</button>
+      <div class="btn" style="flex:0 0 140px; cursor:default;" id="sliceCounter">Slice: — / —</div>
+      <button class="btn" onclick="navSlice(1)">Next ▶</button>
+      <button class="btn" onclick="resetView()">↻ Reset View</button>
+    </div>
+  </div>
+
+  <div class="sidebar right">
+    <div class="cam-title">📷 Gesture Camera</div>
+    <div class="cam-feed">camera preview</div>
+    <div class="cam-status"><div class="pulse-dot"></div> Camera: active</div>
+
+    <div class="gesture-box">
+      <div class="gesture-status">Waiting…</div>
+      <div class="lock-pill">🔓 Unlocked</div>
+    </div>
+  </div>
+</div>
+
+<script src="/vendor/gsap.min.js"></script>
+<script>
+  // ── Entrance animation ──────────────────────
+  gsap.set(['header', '.sidebar', '.viewer'], { opacity: 0 });
+  gsap.set('header', { y: -16 });
+  gsap.set('.sidebar', { y: 12 });
+  gsap.set('.viewer', { y: 16, scale: 0.985 });
+  window.addEventListener('DOMContentLoaded', () => {
+    const tl = gsap.timeline({ defaults: { ease: 'power3.out' } });
+    tl.to('header', { opacity: 1, y: 0, duration: 0.55 })
+      .to('.sidebar', { opacity: 1, y: 0, duration: 0.5, stagger: 0.12 }, '-=0.3')
+      .to('.viewer', { opacity: 1, y: 0, scale: 1, duration: 0.6 }, '-=0.35')
+      .from('.card', { opacity: 0, y: 10, duration: 0.4, stagger: 0.08 }, '-=0.35');
+  });
+
+  // ── Fade helpers (used for tab/view transitions) ──
+  function fadeOut(el, done) {
+    gsap.to(el, {
+      opacity: 0, duration: 0.18, ease: 'power2.in',
+      onComplete: () => { el.style.display = 'none'; if (done) done(); }
+    });
+  }
+  function fadeIn(el, displayVal) {
+    el.style.display = displayVal;
+    gsap.fromTo(el, { opacity: 0, y: 6 }, { opacity: 1, y: 0, duration: 0.32, ease: 'power2.out' });
+  }
+
+  // ── Number count-up (for WL/WW/ISO stat readouts) ──
+  function countUp(el, from, to, duration = 0.35) {
+    const obj = { v: from };
+    gsap.to(obj, {
+      v: to, duration, ease: 'power2.out',
+      onUpdate: () => { el.textContent = Math.round(obj.v); }
+    });
+  }
+
+  // ── Button click punch + card hover lift ──
+  document.querySelectorAll('.btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      gsap.fromTo(btn, { scale: 0.96 }, { scale: 1, duration: 0.28, ease: 'elastic.out(1, 0.5)' });
+    });
+  });
+  document.querySelectorAll('.card').forEach(card => {
+    card.addEventListener('mouseenter', () => {
+      gsap.to(card, { y: -3, duration: 0.25, ease: 'power2.out' });
+    });
+    card.addEventListener('mouseleave', () => {
+      gsap.to(card, { y: 0, duration: 0.3, ease: 'power2.out' });
+    });
+  });
+
+  // ── Ambient background drift ────────────────
+  gsap.to('#ambientGlow', {
+    xPercent: 4, yPercent: -3,
+    duration: 14, ease: 'sine.inOut', repeat: -1, yoyo: true
+  });
+
+  const nav = document.getElementById('nav');
+  const pill = document.getElementById('pill');
+  const buttons = [...nav.querySelectorAll('button')];
+
+  function movePill(btn){
+    pill.style.left = btn.offsetLeft + 'px';
+    pill.style.width = btn.offsetWidth + 'px';
+  }
+  // Maps each tab id to the card(s) that should ONLY be visible on that
+  // tab. Any card not listed here (Open buttons, Patient Info, Windowing)
+  // stays visible everywhere since it's useful across all tools.
+  const TAB_CARDS = {
+    tabFilter:  ['cardFilter'],
+    tab3d:      ['card3d'],
+    tabSegment: ['cardSegment'],
+  };
+  const ALL_TAB_CARD_IDS = Object.values(TAB_CARDS).flat();
+
+  function syncTabCards(activeBtnId) {
+    const wanted = TAB_CARDS[activeBtnId] || [];
+    ALL_TAB_CARD_IDS.forEach(id => {
+      const el = document.getElementById(id);
+      if (!el) return;
+      if (wanted.includes(id) && numSlices > 0) {
+        if (el.style.display === 'none') {
+          el.style.display = 'block';
+          gsap.fromTo(el, { opacity: 0, y: 8 }, { opacity: 1, y: 0, duration: 0.3, ease: 'power2.out' });
+        }
+      } else {
+        el.style.display = 'none';
+      }
+    });
+    if (activeBtnId === 'tabSegment' && numSlices > 0) refreshSegmentPanel();
+  }
+
+  async function refreshSegmentPanel() {
+    const s = await api('/api/segment/status');
+    if (s.running) {
+      document.getElementById('btnRunSegment').disabled = true;
+      document.getElementById('segProgressWrap').style.display = 'block';
+      renderSegLog(s.log);
+      pollSegmentStatus();
+    } else if (s.done) {
+      document.getElementById('segToggleRow').style.display = 'flex';
+      document.getElementById('segOpacityWrap').style.display = 'block';
+      document.getElementById('swSeg').classList.toggle('on', s.show_overlay);
+      const opPct = Math.round(s.opacity * 100);
+      document.getElementById('segOpacitySlider').value = opPct;
+      document.getElementById('segOpacityV').textContent = opPct + '%';
+      document.getElementById('segOpacitySlider').style.setProperty('--val', opPct + '%');
+      loadSegLegend();
+    }
+  }
+
+  buttons.forEach(btn => btn.addEventListener('click', () => {
+    buttons.forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    movePill(btn);
+    if (btn.id === 'tab3d') {
+      show3DView();
+    } else {
+      show2DView();
+    }
+    syncTabCards(btn.id);
+  }));
+  window.addEventListener('load', () => movePill(buttons[0]));
+  window.addEventListener('resize', () => movePill(nav.querySelector('button.active')));
+
+  // ── Real backend wiring ─────────────────────
+  const emptyState = document.getElementById('emptyState');
+  const sliceImg    = document.getElementById('sliceImg');
+  const sliceCounter= document.getElementById('sliceCounter');
+  const wlSlider = document.getElementById('wlSlider');
+  const wwSlider = document.getElementById('wwSlider');
+  const wlv = document.getElementById('wlv');
+  const wwv = document.getElementById('wwv');
+
+  let currentSlice = 0, numSlices = 0;
+  let filtersLoaded = false;
+
+  async function api(path, opts={}) {
+    const res = await fetch(path, {
+      headers: {'Content-Type':'application/json'},
+      ...opts
+    });
+    if (!res.ok) {
+      const msg = await res.text();
+      alert('Error: ' + msg);
+      throw new Error(msg);
+    }
+    return res.json();
+  }
+
+  function refreshSliceImage() {
+    sliceImg.src = '/api/dicom/slice?t=' + Date.now();
+  }
+
+  function applyLoadedState(data) {
+    numSlices = data.num_slices;
+    currentSlice = data.current_slice;
+    document.getElementById('m-patient').textContent = data.meta.Patient || '—';
+    document.getElementById('m-modality').textContent = data.meta.Modality || '—';
+    document.getElementById('m-date').textContent = data.meta['Study Date'] || '—';
+    document.getElementById('m-rows').textContent = data.meta.Rows || '—';
+    document.getElementById('m-cols').textContent = data.meta.Columns || '—';
+    document.getElementById('modeStrip').textContent = 'MODE — ' + (data.meta.Modality || 'CT');
+
+    wlSlider.value = data.wl; wwSlider.value = data.ww;
+    wlv.textContent = data.wl; wwv.textContent = data.ww;
+    wlSlider.style.setProperty('--val', ((data.wl+1000)/4000*100)+'%');
+    wwSlider.style.setProperty('--val', (data.ww/4000*100)+'%');
+
+    sliceCounter.textContent = `Slice: ${currentSlice+1} / ${numSlices}`;
+    fadeOut(emptyState);
+    fadeIn(sliceImg, 'block');
+    refreshSliceImage();
+
+    if (!filtersLoaded) {
+      api('/api/dicom/filters').then(d => {
+        const sel = document.getElementById('filterSelect');
+        sel.innerHTML = '';
+        d.filters.forEach(name => {
+          const opt = document.createElement('option');
+          opt.value = name; opt.textContent = name;
+          sel.appendChild(opt);
+        });
+        sel.value = d.active;
+        const strSlider = document.getElementById('filterStrengthSlider');
+        strSlider.value = d.strength;
+        document.getElementById('filterStrengthV').textContent = d.strength.toFixed(1);
+        strSlider.style.setProperty('--val', ((d.strength - 0.1) / (2.0 - 0.1) * 100) + '%');
+        filtersLoaded = true;
+      });
+    }
+
+    api('/api/dicom/mesh-defaults').then(d => {
+      const slider = document.getElementById('isoSlider');
+      slider.min = d.min; slider.max = d.max; slider.value = d.default;
+      document.getElementById('isov').textContent = Math.round(d.default);
+      document.getElementById('isoLabel').textContent = d.label.toUpperCase();
+      slider.style.setProperty('--val', ((d.default - d.min) / (d.max - d.min) * 100) + '%');
+    });
+
+    // Re-apply visibility rules for whichever tab is currently active,
+    // now that a volume is loaded (tab-specific cards only reveal once
+    // a scan exists).
+    const activeBtn = nav.querySelector('button.active');
+    if (activeBtn) syncTabCards(activeBtn.id);
+  }
+
+  window.__canvas3DVisible = false;
+
+  function hideCanvas3D() {
+    window.__canvas3DVisible = false;
+    const c3d = document.getElementById('canvas3d');
+    gsap.to(c3d, { opacity: 0, duration: 0.18, ease: 'power2.in' });
+    c3d.style.pointerEvents = 'none';
+  }
+
+  function showCanvas3D() {
+    window.__canvas3DVisible = true;
+    const c3d = document.getElementById('canvas3d');
+    c3d.style.pointerEvents = 'auto';
+    gsap.fromTo(c3d, { opacity: 0 }, { opacity: 1, duration: 0.25, ease: 'power2.out' });
+    // The canvas has real (non-zero) dimensions the whole time now - no
+    // hidden/shown display toggling - so resizing here is safe and reliable.
+    ensure3DSceneReady();
+  }
+
+  function show2DView() {
+    hideCanvas3D();
+    if (numSlices > 0) { fadeIn(sliceImg, 'block'); }
+    else { fadeIn(emptyState, 'flex'); }
+  }
+
+  function show3DView() {
+    if (numSlices === 0) {
+      alert('Open a DICOM file or folder first.');
+      buttons[0].click();
+      return;
+    }
+    fadeOut(sliceImg);
+    fadeOut(emptyState);
+    showCanvas3D();
+    loadMesh(parseFloat(document.getElementById('isoSlider').value));
+  }
+
+  async function openFile() {
+    const data = await api('/api/dicom/open-file', {method:'POST'});
+    if (data.cancelled) return;
+    applyLoadedState(data);
+  }
+
+  async function openFolder() {
+    const data = await api('/api/dicom/open-folder', {method:'POST'});
+    if (data.cancelled) return;
+    applyLoadedState(data);
+  }
+
+  let windowDebounce = null;
+  function onWindowInput() {
+    const wl = parseFloat(wlSlider.value), ww = parseFloat(wwSlider.value);
+    wlv.textContent = wl; wwv.textContent = ww;
+    wlSlider.style.setProperty('--val', ((wl+1000)/4000*100)+'%');
+    wwSlider.style.setProperty('--val', (ww/4000*100)+'%');
+    clearTimeout(windowDebounce);
+    windowDebounce = setTimeout(async () => {
+      await api('/api/dicom/window', {method:'POST', body: JSON.stringify({wl, ww})});
+      if (numSlices > 0) refreshSliceImage();
+    }, 40);
+  }
+
+  async function applyPreset(wl, ww) {
+    const fromWl = parseFloat(wlv.textContent), fromWw = parseFloat(wwv.textContent);
+    countUp(wlv, fromWl, wl);
+    countUp(wwv, fromWw, ww);
+    gsap.to(wlSlider, { value: wl, duration: 0.35, ease: 'power2.out',
+      onUpdate: () => wlSlider.style.setProperty('--val', ((wlSlider.value*1+1000)/4000*100)+'%') });
+    gsap.to(wwSlider, { value: ww, duration: 0.35, ease: 'power2.out',
+      onUpdate: () => wwSlider.style.setProperty('--val', (wwSlider.value/4000*100)+'%') });
+    clearTimeout(windowDebounce);
+    windowDebounce = setTimeout(async () => {
+      await api('/api/dicom/window', {method:'POST', body: JSON.stringify({wl, ww})});
+      if (numSlices > 0) refreshSliceImage();
+    }, 360);
+  }
+
+  async function navSlice(delta) {
+    if (numSlices === 0) return;
+    const data = await api('/api/dicom/nav', {method:'POST', body: JSON.stringify({delta})});
+    currentSlice = data.current_slice;
+    sliceCounter.textContent = `Slice: ${currentSlice+1} / ${numSlices}`;
+    refreshSliceImage();
+  }
+
+  function resetView() {
+    // Placeholder for zoom/pan reset once those are wired server-side.
+  }
+
+  let isoDebounce = null;
+  function onIsoInput() {
+    const slider = document.getElementById('isoSlider');
+    const iso = parseFloat(slider.value);
+    document.getElementById('isov').textContent = Math.round(iso);
+    slider.style.setProperty('--val', ((iso - slider.min) / (slider.max - slider.min) * 100) + '%');
+    clearTimeout(isoDebounce);
+    isoDebounce = setTimeout(() => loadMesh(iso), 250);
+  }
+
+  function applyIsoPreset(kind) {
+    const slider = document.getElementById('isoSlider');
+    const presets = { bone: 300, soft: 40, skin: -200 };
+    const target = presets[kind] !== undefined ? presets[kind] : parseFloat(slider.value);
+    const isov = document.getElementById('isov');
+    countUp(isov, parseFloat(slider.value), target);
+    gsap.to(slider, {
+      value: target, duration: 0.35, ease: 'power2.out',
+      onUpdate: () => slider.style.setProperty('--val', ((slider.value - slider.min) / (slider.max - slider.min) * 100) + '%'),
+      onComplete: () => onIsoInput()
+    });
+  }
+
+  // ── Filter panel ─────────────────────────────
+  let filterDebounce = null;
+  async function onFilterChange() {
+    const name = document.getElementById('filterSelect').value;
+    await api('/api/dicom/filter', {method:'POST', body: JSON.stringify({name})});
+    if (numSlices > 0) refreshSliceImage();
+    // Small "applied" pulse on the select for feedback.
+    gsap.fromTo('#filterSelect', {borderColor: '#14a394'}, {borderColor: '#2c3836', duration: 0.6});
+  }
+
+  function onFilterStrengthInput() {
+    const slider = document.getElementById('filterStrengthSlider');
+    const val = parseFloat(slider.value);
+    document.getElementById('filterStrengthV').textContent = val.toFixed(1);
+    slider.style.setProperty('--val', ((val - 0.1) / (2.0 - 0.1) * 100) + '%');
+    clearTimeout(filterDebounce);
+    filterDebounce = setTimeout(async () => {
+      await api('/api/dicom/filter', {method:'POST', body: JSON.stringify({strength: val})});
+      if (numSlices > 0) refreshSliceImage();
+    }, 120);
+  }
+
+  // ── Segmentation panel ───────────────────────
+  let segPolling = null;
+
+  async function runSegmentation() {
+    try {
+      await api('/api/segment/run', {method:'POST'});
+    } catch (e) {
+      return; // api() already alerted the error
+    }
+    document.getElementById('btnRunSegment').disabled = true;
+    document.getElementById('segProgressWrap').style.display = 'block';
+    document.getElementById('segErrorWrap').style.display = 'none';
+    document.getElementById('segLog').innerHTML = '';
+    pollSegmentStatus();
+  }
+
+  function pollSegmentStatus() {
+    clearTimeout(segPolling);
+    segPolling = setTimeout(async () => {
+      const s = await api('/api/segment/status');
+      renderSegLog(s.log);
+      if (s.running) {
+        pollSegmentStatus();
+      } else {
+        document.getElementById('btnRunSegment').disabled = false;
+        if (s.error) {
+          document.getElementById('segErrorWrap').style.display = 'block';
+          document.getElementById('segErrorWrap').textContent = s.error.split('\n')[0];
+        } else if (s.done) {
+          document.getElementById('segToggleRow').style.display = 'flex';
+          document.getElementById('segOpacityWrap').style.display = 'block';
+          document.getElementById('swSeg').classList.toggle('on', s.show_overlay);
+          const opPct = Math.round(s.opacity * 100);
+          document.getElementById('segOpacitySlider').value = opPct;
+          document.getElementById('segOpacityV').textContent = opPct + '%';
+          document.getElementById('segOpacitySlider').style.setProperty('--val', opPct + '%');
+          loadSegLegend();
+          if (numSlices > 0) refreshSliceImage();
+        }
+      }
+    }, 700);
+  }
+
+  function renderSegLog(lines) {
+    const el = document.getElementById('segLog');
+    el.innerHTML = lines.map(l => `<div>${l.replace(/</g,'&lt;')}</div>`).join('');
+    el.scrollTop = el.scrollHeight;
+  }
+
+  async function loadSegLegend() {
+    const d = await api('/api/segment/legend');
+    const el = document.getElementById('segLegend');
+    if (!d.items.length) { el.style.display = 'none'; return; }
+    el.style.display = 'block';
+    el.innerHTML = d.items.map(it =>
+      `<div style="display:flex; align-items:center; gap:8px; padding:3px 0; font-size:12px; color:var(--text-3);">
+         <span style="width:10px;height:10px;border-radius:2px;background:${it.color};flex-shrink:0;"></span>
+         ${it.name}
+       </div>`
+    ).join('');
+  }
+
+  async function onToggleOverlay() {
+    const sw = document.getElementById('swSeg');
+    const nowOn = !sw.classList.contains('on');
+    sw.classList.toggle('on', nowOn);
+    await api('/api/segment/overlay', {method:'POST', body: JSON.stringify({show: nowOn})});
+    if (numSlices > 0) refreshSliceImage();
+  }
+
+  let opacityDebounce = null;
+  function onOpacityInput() {
+    const slider = document.getElementById('segOpacitySlider');
+    const pct = parseInt(slider.value);
+    document.getElementById('segOpacityV').textContent = pct + '%';
+    slider.style.setProperty('--val', pct + '%');
+    clearTimeout(opacityDebounce);
+    opacityDebounce = setTimeout(async () => {
+      await api('/api/segment/overlay', {method:'POST', body: JSON.stringify({opacity: pct / 100})});
+      if (numSlices > 0) refreshSliceImage();
+    }, 100);
+  }
+
+  // Resume an in-progress session (e.g. page refresh) if a volume is
+  // already loaded server-side.
+  (async () => {
+    const s = await api('/api/status');
+    if (s.has_volume) {
+      applyLoadedState({
+        meta: s.meta, num_slices: s.num_slices, current_slice: s.current_slice,
+        wl: s.wl, ww: s.ww
+      });
+    }
+  })();
+</script>
+
+<script type="module">
+  import * as THREE from 'three';
+  import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+  let scene, camera, renderer, controls, currentMesh;
+  let sceneReady = false;
+
+  window.ensure3DSceneReady = function () {
+    if (sceneReady) {
+      // canvas may have been hidden/resized while on another tab. Force a
+      // real size change first so Three.js can't skip re-syncing the GL
+      // viewport (see resizeToContainer for why this matters).
+      const el = document.getElementById('canvas3d');
+      const w = el.clientWidth, h = el.clientHeight;
+      if (w > 0 && h > 0) {
+        renderer.setSize(Math.max(1, w - 1), Math.max(1, h - 1));
+        renderer.setSize(w, h);
+        renderer.setViewport(0, 0, w, h);
+        camera.aspect = w / h;
+        camera.updateProjectionMatrix();
+      }
+      return;
+    }
+    const el = document.getElementById('canvas3d');
+    scene = new THREE.Scene();
+    scene.background = new THREE.Color(0x000000);
+
+    camera = new THREE.PerspectiveCamera(45, el.clientWidth / el.clientHeight, 0.1, 5000);
+    camera.position.set(0, 0, 250);
+
+    renderer = new THREE.WebGLRenderer({ antialias: true });
+    renderer.setPixelRatio(window.devicePixelRatio);
+    renderer.setSize(el.clientWidth, el.clientHeight);
+    el.appendChild(renderer.domElement);
+
+    controls = new OrbitControls(camera, renderer.domElement);
+    controls.enableDamping = true;
+    controls.dampingFactor = 0.08;
+
+    scene.add(new THREE.AmbientLight(0x445550, 1.2));
+    const key = new THREE.DirectionalLight(0xffffff, 1.4);
+    key.position.set(150, 200, 250);
+    scene.add(key);
+    const rim = new THREE.DirectionalLight(0x14a394, 0.6);
+    rim.position.set(-200, -100, -150);
+    scene.add(rim);
+
+    function animate() {
+      requestAnimationFrame(animate);
+      controls.update();
+      renderer.render(scene, camera);
+    }
+    animate();
+
+    function resizeToContainer() {
+      const w = el.clientWidth, h = el.clientHeight;
+      if (w === 0 || h === 0) return;
+      renderer.setSize(Math.max(1, w - 1), Math.max(1, h - 1));
+      renderer.setSize(w, h);
+      renderer.setViewport(0, 0, w, h);
+      camera.aspect = w / h;
+      camera.updateProjectionMatrix();
+      renderer.render(scene, camera);
+    }
+    const ro = new ResizeObserver(() => resizeToContainer());
+    ro.observe(el);
+    window.addEventListener('resize', resizeToContainer);
+
+    sceneReady = true;
+  };
+
+  function parseMeshBinary(buf) {
+    const dv = new DataView(buf);
+    const nVerts = dv.getUint32(0, true);
+    const nFaces = dv.getUint32(4, true);
+    let offset = 8;
+    const vertices = new Float32Array(buf, offset, nVerts * 3);
+    offset += nVerts * 3 * 4;
+    const normals = new Float32Array(buf, offset, nVerts * 3);
+    offset += nVerts * 3 * 4;
+    const faces = new Uint32Array(buf, offset, nFaces * 3);
+    return { vertices, normals, faces, nVerts, nFaces };
+  }
+
+  window.loadMesh = async function (iso) {
+    const loading = document.getElementById('loading3d');
+    loading.style.display = 'block';
+    try {
+      const modality = (document.getElementById('m-modality').textContent || 'CT').toUpperCase();
+      const step = modality === 'CT' ? 1 : 2;
+      const res = await fetch(`/api/dicom/mesh?iso=${iso}&step=${step}`);
+      if (!res.ok) {
+        const msg = await res.text();
+        document.getElementById('meshInfo').textContent = 'No surface at this value.';
+        loading.style.display = 'none';
+        return;
+      }
+      const buf = await res.arrayBuffer();
+      const { vertices, normals, faces, nVerts, nFaces } = parseMeshBinary(buf);
+
+      const geometry = new THREE.BufferGeometry();
+      geometry.setAttribute('position', new THREE.BufferAttribute(vertices, 3));
+      geometry.setAttribute('normal', new THREE.BufferAttribute(normals, 3));
+      geometry.setIndex(new THREE.BufferAttribute(faces, 1));
+
+      const isCT = modality === 'CT';
+      const material = new THREE.MeshStandardMaterial({
+        color: isCT ? 0xe8dcc8 : 0x1c9c78,
+        roughness: 0.55, metalness: 0.05,
+        side: THREE.DoubleSide,
+        transparent: true, opacity: 1,
+      });
+
+      if (currentMesh) { scene.remove(currentMesh); currentMesh.geometry.dispose(); }
+      currentMesh = new THREE.Mesh(geometry, material);
+      // Marching-cubes output is in (x,y,z) world mm; rotate so the
+      // patient's superior axis points up on screen.
+      currentMesh.rotation.x = -Math.PI / 2;
+      currentMesh.scale.setScalar(0.01);
+      material.opacity = 0;
+      scene.add(currentMesh);
+
+      geometry.computeBoundingSphere();
+      const radius = geometry.boundingSphere ? geometry.boundingSphere.radius : 150;
+      camera.position.set(0, 0, radius * 2.8);
+      controls.target.set(0, 0, 0);
+      controls.update();
+
+      // Materialize: mesh grows in from a point and fades in, instead of
+      // just popping into existence.
+      window.gsap.to(currentMesh.scale, { x: 1, y: 1, z: 1, duration: 0.9, ease: 'power3.out' });
+      window.gsap.to(material, { opacity: 1, duration: 0.7, ease: 'power2.out' });
+
+      document.getElementById('meshInfo').textContent =
+        `${nVerts.toLocaleString()} vertices · ${nFaces.toLocaleString()} triangles`;
+    } catch (e) {
+      console.error(e);
+      document.getElementById('meshInfo').textContent = 'Mesh load failed.';
+    }
+    loading.style.display = 'none';
+  };
+</script>
+</body>
+</html>

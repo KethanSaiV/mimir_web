@@ -1,0 +1,10 @@
+fastapi==0.115.0
+uvicorn[standard]==0.32.0
+python-multipart==0.0.12
+pydicom>=3.0
+SimpleITK==2.4.0
+opencv-python==4.10.0.84
+numpy==1.26.4
+scipy==1.13.1
+scikit-image==0.24.0
+TotalSegmentator==2.4.0
