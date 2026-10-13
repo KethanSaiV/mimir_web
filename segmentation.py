@@ -117,6 +117,36 @@ def _pick_task(modality: str) -> str:
     return "total_mr" if modality.upper() in ("MR", "MRI") else "total"
 
 
+DOCKER_IMAGE = "wasserth/totalsegmentator:2.18.0"
+
+# A --noconsole build would otherwise flash a console window per subprocess.
+_NO_WINDOW = getattr(subprocess, "CREATE_NO_WINDOW", 0)
+
+
+def _seg_command(tmp_dir: str, nii_in: str, out_dir: str) -> list | None:
+    """TotalSegmentator command line up to (not incl.) task/device flags.
+    Docker first; local Python install only when running from source.
+    Sets state.seg_error and returns None if neither is usable."""
+    if shutil.which("docker"):
+        if subprocess.run(["docker", "info"], capture_output=True,
+                          creationflags=_NO_WINDOW).returncode != 0:
+            state.seg_error = "Docker is installed but not running. Start Docker Desktop and try again."
+            return None
+        if subprocess.run(["docker", "image", "inspect", DOCKER_IMAGE], capture_output=True,
+                          creationflags=_NO_WINDOW).returncode != 0:
+            _log("Downloading segmentation image (~15 GB, first time only)...")
+        # Named volume keeps model weights across --rm runs.
+        return ["docker", "run", "--rm", "--ipc=host",
+                "-v", f"{tmp_dir}:/data", "-v", "mimir-totalseg:/root/.totalsegmentator",
+                DOCKER_IMAGE, "TotalSegmentator",
+                "-i", "/data/input.nii.gz", "-o", "/data/segs"]
+    if not getattr(sys, "frozen", False):
+        return [sys.executable, "-m", "totalsegmentator.bin.TotalSegmentator",
+                "-i", nii_in, "-o", out_dir]
+    state.seg_error = "Segmentation needs Docker. Install Docker Desktop, start it, and try again."
+    return None
+
+
 def _log(msg: str):
     state.seg_log.append(msg)
     # Keep the log from growing unbounded across repeated runs.
@@ -167,22 +197,15 @@ def run_segmentation(dicom_path: str, modality: str):
         reader.SetFileNames(files)
         sitk.WriteImage(reader.Execute(), nii_in)
 
-        # Frozen .exe has no Python to run -m with; use the CLI on PATH instead.
-        if getattr(sys, "frozen", False):
-            exe = shutil.which("TotalSegmentator")
-            if not exe:
-                state.seg_error = ("TotalSegmentator not found. Install it with "
-                                   "'pip install TotalSegmentator' and make sure it is on PATH.")
-                return
-            cmd = [exe]
-        else:
-            cmd = [sys.executable, "-m", "totalsegmentator.bin.TotalSegmentator"]
+        cmd = _seg_command(tmp_dir, nii_in, out_dir)
+        if cmd is None:
+            return
 
         _log(f"Running TotalSegmentator ({task}, CPU fast)...")
         proc = subprocess.Popen(
-            cmd + ["-i", nii_in, "-o", out_dir, "-ta", task, "-d", "cpu", "--fast"],
+            cmd + ["-ta", task, "-d", "cpu", "--fast"],
             stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
-            text=True, bufsize=1,
+            text=True, bufsize=1, creationflags=_NO_WINDOW,
         )
         for line in proc.stdout:
             line = line.strip()
@@ -205,7 +228,8 @@ def run_segmentation(dicom_path: str, modality: str):
         active_labels = set()
         for fname in sorted(seg_files):
             stem = fname.replace(".nii.gz", "").replace(".nii", "").lower()
-            lid = _NAME_TO_ID.get(stem)
+            # CT task writes each vertebra separately (vertebrae_L1, ...).
+            lid = _NAME_TO_ID.get(stem, 31 if stem.startswith("vertebrae_") else None)
             if lid is None:
                 continue
             arr = sitk.GetArrayFromImage(

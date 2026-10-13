@@ -2,9 +2,9 @@
 server.py
 MIMIR — Gesture-Guided Surgical Intelligence
 
-Local FastAPI server. Runs entirely on the user's own machine — nothing
-is uploaded anywhere. The browser tab is just the UI; all DICOM/AI work
-happens in this process using the user's own CPU/GPU.
+Local FastAPI server shown in a native window (pywebview). Runs entirely
+on the user's own machine — nothing is uploaded anywhere. The window is
+just the UI; all DICOM/AI work happens in this process.
 
 Step 1 scope (this file): DICOM open (file/folder via native OS dialog),
 slice rendering with windowing + filters, slice navigation.
@@ -13,9 +13,11 @@ in subsequent steps.
 """
 
 from __future__ import annotations
+import socket
 import threading
-import webbrowser
 from pathlib import Path
+
+import webview
 
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import Response, FileResponse
@@ -36,29 +38,17 @@ app = FastAPI(title="MIMIR", version=__version__)
 
 
 # ══════════════════════════════════════════════════════════════
-#  Native OS file/folder dialogs
+#  Native OS file/folder dialogs (via the app window)
 # ══════════════════════════════════════════════════════════════
 
-def _native_open_file() -> str | None:
-    import tkinter as tk
-    from tkinter import filedialog
-    root = tk.Tk()
-    root.withdraw()
-    root.attributes("-topmost", True)
-    path = filedialog.askopenfilename(title="Open DICOM File")
-    root.destroy()
-    return path or None
+window = None  # the pywebview window, set in __main__
 
 
-def _native_open_folder() -> str | None:
-    import tkinter as tk
-    from tkinter import filedialog
-    root = tk.Tk()
-    root.withdraw()
-    root.attributes("-topmost", True)
-    path = filedialog.askdirectory(title="Open DICOM Folder")
-    root.destroy()
-    return path or None
+def _ask_path(dialog) -> str | None:
+    """dialog: webview.FileDialog.OPEN or .FOLDER. Safe to call from
+    request threads; pywebview marshals it onto the GUI thread."""
+    paths = window.create_file_dialog(dialog)
+    return paths[0] if paths else None
 
 
 # ══════════════════════════════════════════════════════════════
@@ -98,7 +88,7 @@ def _load_and_reset(path: str) -> dict:
 
 @app.post("/api/dicom/open-file")
 def open_file():
-    path = _native_open_file()
+    path = _ask_path(webview.FileDialog.OPEN)
     if not path:
         return {"cancelled": True}
     try:
@@ -109,7 +99,7 @@ def open_file():
 
 @app.post("/api/dicom/open-folder")
 def open_folder():
-    path = _native_open_folder()
+    path = _ask_path(webview.FileDialog.FOLDER)
     if not path:
         return {"cancelled": True}
     try:
@@ -303,11 +293,18 @@ def index():
     return FileResponse(STATIC / "index.html")
 
 
-def _open_browser():
-    webbrowser.open("http://127.0.0.1:8731")
-
-
 if __name__ == "__main__":
     import uvicorn
-    threading.Timer(1.0, _open_browser).start()
-    uvicorn.run(app, host="127.0.0.1", port=8731, log_level="warning")
+    # Free port, already listening, so the window's first request just
+    # queues until uvicorn is up (no race, no clash with a second instance).
+    sock = socket.socket()
+    sock.bind(("127.0.0.1", 0))
+    sock.listen()
+    port = sock.getsockname()[1]
+    # log_config=None: a --noconsole build has no stdout for uvicorn's handlers.
+    server = uvicorn.Server(uvicorn.Config(app, log_config=None, access_log=False))
+    threading.Thread(target=server.run, kwargs={"sockets": [sock]}, daemon=True).start()
+
+    window = webview.create_window(f"MIMIR {__version__}", f"http://127.0.0.1:{port}",
+                                   width=1600, height=1000, min_size=(1100, 700))
+    webview.start()  # blocks until the window is closed; daemon thread dies with it
