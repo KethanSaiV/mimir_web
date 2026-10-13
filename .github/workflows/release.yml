@@ -1,0 +1,41 @@
+# Push a tag like v0.1.0 -> builds MIMIR.exe and publishes a GitHub Release.
+name: release
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write
+
+jobs:
+  windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Check tag matches __version__
+        shell: bash
+        run: grep -q "__version__ = \"${GITHUB_REF_NAME#v}\"" server.py || { echo "Tag $GITHUB_REF_NAME != __version__ in server.py"; exit 1; }
+
+      # TotalSegmentator (torch, GBs) is not bundled; the app calls it on PATH.
+      - name: Install
+        shell: bash
+        run: |
+          grep -v TotalSegmentator requirements.txt > build-req.txt
+          pip install -r build-req.txt pyinstaller
+
+      - name: Build
+        run: pyinstaller server.py --name MIMIR --onedir --noconfirm --add-data "static:static" --icon static/assets/mimir-emblem.png --collect-submodules uvicorn
+
+      - name: Zip
+        run: Compress-Archive -Path dist/MIMIR -DestinationPath MIMIR-${{ github.ref_name }}-windows-x64.zip
+
+      - name: Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release create ${{ github.ref_name }} MIMIR-${{ github.ref_name }}-windows-x64.zip --generate-notes

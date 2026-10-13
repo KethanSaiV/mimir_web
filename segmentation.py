@@ -167,10 +167,20 @@ def run_segmentation(dicom_path: str, modality: str):
         reader.SetFileNames(files)
         sitk.WriteImage(reader.Execute(), nii_in)
 
+        # Frozen .exe has no Python to run -m with; use the CLI on PATH instead.
+        if getattr(sys, "frozen", False):
+            exe = shutil.which("TotalSegmentator")
+            if not exe:
+                state.seg_error = ("TotalSegmentator not found. Install it with "
+                                   "'pip install TotalSegmentator' and make sure it is on PATH.")
+                return
+            cmd = [exe]
+        else:
+            cmd = [sys.executable, "-m", "totalsegmentator.bin.TotalSegmentator"]
+
         _log(f"Running TotalSegmentator ({task}, CPU fast)...")
         proc = subprocess.Popen(
-            [sys.executable, "-m", "totalsegmentator.bin.TotalSegmentator",
-             "-i", nii_in, "-o", out_dir, "-ta", task, "-d", "cpu", "--fast"],
+            cmd + ["-i", nii_in, "-o", out_dir, "-ta", task, "-d", "cpu", "--fast"],
             stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
             text=True, bufsize=1,
         )

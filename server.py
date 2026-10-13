@@ -15,6 +15,7 @@ in subsequent steps.
 from __future__ import annotations
 import threading
 import webbrowser
+from pathlib import Path
 
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import Response, FileResponse
@@ -26,7 +27,12 @@ from dicom_io import load_dicom_path
 from render import render_current_slice_png
 from mesh3d import extract_mesh, suggest_iso_defaults, serialize_mesh
 
-app = FastAPI(title="MIMIR")
+__version__ = "0.1.0"  # bump before tagging a release: git tag v<this>
+
+# Resolves to the bundle dir when frozen by PyInstaller, so cwd doesn't matter.
+STATIC = Path(__file__).parent / "static"
+
+app = FastAPI(title="MIMIR", version=__version__)
 
 
 # ══════════════════════════════════════════════════════════════
@@ -180,6 +186,7 @@ def nav_slice(body: SliceNav):
 @app.get("/api/status")
 def status():
     return {
+        "version": __version__,
         "has_volume": state.has_volume,
         "num_slices": state.num_slices,
         "current_slice": state.current_slice,
@@ -287,13 +294,13 @@ def set_overlay(body: OverlayUpdate):
 #  Static frontend
 # ══════════════════════════════════════════════════════════════
 
-app.mount("/assets", StaticFiles(directory="static/assets"), name="assets")
-app.mount("/vendor", StaticFiles(directory="static/vendor"), name="vendor")
+app.mount("/assets", StaticFiles(directory=STATIC / "assets"), name="assets")
+app.mount("/vendor", StaticFiles(directory=STATIC / "vendor"), name="vendor")
 
 
 @app.get("/")
 def index():
-    return FileResponse("static/index.html")
+    return FileResponse(STATIC / "index.html")
 
 
 def _open_browser():
