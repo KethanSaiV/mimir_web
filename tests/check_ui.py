@@ -85,6 +85,13 @@ def check_planned_systems():
     assert "Placeholder for zoom/pan" not in HTML, "Reset view is still a no-op"
 
 
+def check_image_overlays():
+    assert "mode-strip" not in HTML, "amber mode strip should be replaced by image overlays"
+    assert "sliceCounter" not in HTML, "slice counter moves into the image overlay"
+    for oid in ("ovTL", "ovTR", "ovBL", "ovBR"):
+        assert f'id="{oid}"' in HTML, f"missing overlay #{oid}"
+
+
 def run():
     checks = [v for k, v in globals().items() if k.startswith("check_")]
     failed = 0
