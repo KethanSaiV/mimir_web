@@ -76,6 +76,8 @@
   ::-webkit-scrollbar-track{background:transparent;}
   ::-webkit-scrollbar-thumb{background:var(--line-3); border-radius:5px;}
   ::-webkit-scrollbar-thumb:hover{background:var(--teal-core);}
+  :focus-visible{outline:2px solid var(--focus); outline-offset:2px;}
+  input[type=range]:focus-visible{outline-offset:6px;}
 
   /* ── Header ─────────────────────────────── */
   header{
@@ -177,13 +179,13 @@
     background-repeat:no-repeat; background-position:right 10px center; background-size:16px;
   }
   select.styled-select:hover{border-color:var(--teal-core);}
-  select.styled-select:focus{outline:none; border-color:var(--teal-glow);}
+  select.styled-select:focus{border-color:var(--teal-glow);}
 
   /* ── Toggle switch ───────────────────────── */
   .toggle-row{display:flex; justify-content:space-between; align-items:center;}
   .toggle-label{font-size:14px; font-weight:600; color:var(--text-2);}
   .switch{width:46px; height:26px; border-radius:13px; background:var(--line-2);
-    position:relative; cursor:pointer; transition:background .2s ease; flex-shrink:0;}
+    position:relative; cursor:pointer; transition:background .2s ease; flex-shrink:0; border:1px solid var(--text-5); padding:0;}
   .switch.on{background:var(--teal-solid);}
   .switch .knob{position:absolute; top:3px; left:3px; width:20px; height:20px; border-radius:50%;
     background:var(--text-4); transition:left .18s cubic-bezier(.4,0,.2,1), background .18s ease;}
@@ -236,30 +238,30 @@
 
 <header>
   <div class="brand">
-    <img src="assets/mimir-emblem.png" alt="Mimir emblem">
+    <img src="assets/mimir-emblem.png" alt="">
     <div class="brand-text">
       <div class="wordmark">M<span class="dot">·</span>I<span class="dot">·</span>M<span class="dot">·</span>I<span class="dot">·</span>R</div>
       <div class="tagline">Gesture-Guided Surgical Intelligence</div>
     </div>
   </div>
 
-  <nav id="nav">
+  <nav id="nav" role="tablist" aria-label="Tools">
     <div class="pill-indicator" id="pill"></div>
-    <button class="active" data-i="0">DICOM</button>
-    <button data-i="1" id="tab3d">3D VIEW</button>
-    <button data-i="2" id="tabFilter">FILTER</button>
-    <button data-i="3" id="tabSegment">SEGMENT</button>
-    <button data-i="4">REGISTER</button>
-    <button data-i="5">PATH PLAN</button>
-    <button data-i="6">MEASURE</button>
-    <button data-i="7">REVIEW</button>
+    <button type="button" role="tab" aria-selected="true"  tabindex="0"  class="active" data-i="0">DICOM</button>
+    <button type="button" role="tab" aria-selected="false" tabindex="-1" data-i="1" id="tab3d">3D VIEW</button>
+    <button type="button" role="tab" aria-selected="false" tabindex="-1" data-i="2" id="tabFilter">FILTER</button>
+    <button type="button" role="tab" aria-selected="false" tabindex="-1" data-i="3" id="tabSegment">SEGMENT</button>
+    <button type="button" role="tab" aria-selected="false" tabindex="-1" data-i="4">REGISTER</button>
+    <button type="button" role="tab" aria-selected="false" tabindex="-1" data-i="5">PATH PLAN</button>
+    <button type="button" role="tab" aria-selected="false" tabindex="-1" data-i="6">MEASURE</button>
+    <button type="button" role="tab" aria-selected="false" tabindex="-1" data-i="7">REVIEW</button>
   </nav>
 
-  <div class="lock-indicator">Unlocked</div>
+  <div class="lock-indicator" id="lockIndicator">Unlocked</div>
 </header>
 
 <div class="layout">
-  <div class="sidebar">
+  <aside class="sidebar" aria-label="Scan controls">
     <button class="btn" onclick="openFile()">📁 Open DICOM File</button>
     <button class="btn" onclick="openFolder()">🗂 Open DICOM Folder</button>
 
@@ -274,9 +276,9 @@
 
     <div class="card">
       <div class="card-title">Windowing</div>
-      <div class="stat-row"><span class="stat-label">LEVEL (WL)</span><span class="stat-value" id="wlv">40</span></div>
+      <div class="stat-row"><label class="stat-label" for="wlSlider">Level (WL)</label><output class="stat-value" id="wlv" for="wlSlider">40</output></div>
       <input type="range" id="wlSlider" min="-1000" max="3000" value="40" style="--val:34%" oninput="onWindowInput()">
-      <div class="stat-row"><span class="stat-label">WIDTH (WW)</span><span class="stat-value" id="wwv">400</span></div>
+      <div class="stat-row"><label class="stat-label" for="wwSlider">Width (WW)</label><output class="stat-value" id="wwv" for="wwSlider">400</output></div>
       <input type="range" id="wwSlider" min="1" max="4000" value="400" style="--val:10%" oninput="onWindowInput()">
       <div class="preset-row">
         <button class="btn" onclick="applyPreset(40,80)">Brain</button>
@@ -297,12 +299,13 @@
       <div id="segErrorWrap" style="display:none; color:var(--red); font-size:var(--fs-sm); margin-bottom:12px;"></div>
 
       <div class="toggle-row" id="segToggleRow" style="display:none;">
-        <span class="toggle-label">Show Overlay</span>
-        <div class="switch" id="swSeg" onclick="onToggleOverlay()"><div class="knob"></div></div>
+        <span class="toggle-label" id="segOverlayLabel">Show overlay</span>
+        <button type="button" class="switch" id="swSeg" role="switch" aria-checked="false"
+                aria-labelledby="segOverlayLabel" onclick="onToggleOverlay()"><span class="knob"></span></button>
       </div>
 
       <div id="segOpacityWrap" style="display:none; margin-top:12px;">
-        <div class="stat-row"><span class="stat-label">OPACITY</span><span class="stat-value sm" id="segOpacityV">45%</span></div>
+        <div class="stat-row"><label class="stat-label" for="segOpacitySlider">Opacity</label><output class="stat-value sm" id="segOpacityV" for="segOpacitySlider">45%</output></div>
         <input type="range" id="segOpacitySlider" min="0" max="100" value="45" style="--val:45%" oninput="onOpacityInput()">
       </div>
 
@@ -311,16 +314,17 @@
 
     <div class="card" id="cardFilter" style="display:none;">
       <div class="card-title">Image Filters</div>
+      <label class="stat-label" for="filterSelect" style="display:block; margin-bottom:8px;">Filter</label>
       <select id="filterSelect" class="styled-select" onchange="onFilterChange()">
         <option>None (Original)</option>
       </select>
-      <div class="stat-row"><span class="stat-label">STRENGTH</span><span class="stat-value sm" id="filterStrengthV">1.0</span></div>
+      <div class="stat-row"><label class="stat-label" for="filterStrengthSlider">Strength</label><output class="stat-value sm" id="filterStrengthV" for="filterStrengthSlider">1.0</output></div>
       <input type="range" id="filterStrengthSlider" min="0.1" max="2.0" step="0.1" value="1.0" style="--val:45%" oninput="onFilterStrengthInput()">
     </div>
 
     <div class="card" id="card3d" style="display:none;">
       <div class="card-title">3D Rendering</div>
-      <div class="stat-row"><span class="stat-label" id="isoLabel">ISO VALUE</span><span class="stat-value" id="isov">300</span></div>
+      <div class="stat-row"><label class="stat-label" id="isoLabel" for="isoSlider">Iso value</label><output class="stat-value" id="isov" for="isoSlider">300</output></div>
       <input type="range" id="isoSlider" min="-200" max="2000" value="300" style="--val:25%" oninput="onIsoInput()">
       <div class="preset-row" style="margin-top:6px;">
         <button class="btn" onclick="applyIsoPreset('bone')">Bone</button>
@@ -329,9 +333,9 @@
       </div>
       <div id="meshInfo" style="margin-top:10px; font-size:var(--fs-xs); color:var(--text-4);"></div>
     </div>
-  </div>
+  </aside>
 
-  <div class="viewer">
+  <main class="viewer">
     <div class="mode-strip" id="modeStrip">MODE — CT</div>
     <div class="canvas">
       <div class="empty-state" id="emptyState">
@@ -340,19 +344,19 @@
         <div class="empty-sub">Open a DICOM file or folder to begin viewing, filtering, segmenting, registering, and planning needle paths.</div>
         <button class="btn btn-primary" style="margin-top:6px; padding:13px 26px;" onclick="openFile()">📁 Open DICOM File</button>
       </div>
-      <img id="sliceImg" style="display:none; max-width:100%; max-height:100%; object-fit:contain;">
+      <img id="sliceImg" alt="" style="display:none; max-width:100%; max-height:100%; object-fit:contain;">
       <div id="canvas3d" style="opacity:0; pointer-events:none; width:100%; height:100%;"></div>
       <div id="loading3d" style="display:none; position:absolute; color:var(--teal-glow); font-family:var(--font-display); font-size:12px; letter-spacing:2px;">BUILDING MESH…</div>
     </div>
     <div class="viewer-nav">
-      <button class="btn" onclick="navSlice(-1)">◀ Prev</button>
+      <button class="btn" title="Previous slice (↑ or scroll)" onclick="navSlice(-1)">◀ Prev</button>
       <div class="btn" style="flex:0 0 140px; cursor:default;" id="sliceCounter">Slice: — / —</div>
-      <button class="btn" onclick="navSlice(1)">Next ▶</button>
+      <button class="btn" title="Next slice (↓ or scroll)" onclick="navSlice(1)">Next ▶</button>
       <button class="btn" onclick="resetView()">↻ Reset View</button>
     </div>
-  </div>
+  </main>
 
-  <div class="sidebar right">
+  <aside class="sidebar right" aria-label="Gesture control">
     <div class="cam-title">📷 Gesture Camera</div>
     <div class="cam-feed">camera preview</div>
     <div class="cam-status"><div class="pulse-dot"></div> Camera: active</div>
@@ -361,7 +365,7 @@
       <div class="gesture-status">Waiting…</div>
       <div class="lock-pill">🔓 Unlocked</div>
     </div>
-  </div>
+  </aside>
 </div>
 
 <script src="/vendor/gsap.min.js"></script>
@@ -466,7 +470,7 @@
     } else if (s.done) {
       document.getElementById('segToggleRow').style.display = 'flex';
       document.getElementById('segOpacityWrap').style.display = 'block';
-      document.getElementById('swSeg').classList.toggle('on', s.show_overlay);
+      setSwitch(s.show_overlay);
       const opPct = Math.round(s.opacity * 100);
       document.getElementById('segOpacitySlider').value = opPct;
       document.getElementById('segOpacityV').textContent = opPct + '%';
@@ -475,17 +479,34 @@
     }
   }
 
-  buttons.forEach(btn => btn.addEventListener('click', () => {
-    buttons.forEach(b => b.classList.remove('active'));
-    btn.classList.add('active');
+  function setSwitch(on) {
+    const sw = document.getElementById('swSeg');
+    sw.classList.toggle('on', on);
+    sw.setAttribute('aria-checked', String(on));
+  }
+
+  function selectTab(btn) {
+    buttons.forEach(b => {
+      const on = b === btn;
+      b.classList.toggle('active', on);
+      b.setAttribute('aria-selected', String(on));
+      b.tabIndex = on ? 0 : -1;
+    });
     movePill(btn);
-    if (btn.id === 'tab3d') {
-      show3DView();
-    } else {
-      show2DView();
-    }
+    if (btn.id === 'tab3d') show3DView(); else show2DView();
     syncTabCards(btn.id);
-  }));
+  }
+  buttons.forEach(btn => btn.addEventListener('click', () => selectTab(btn)));
+
+  // Tablist keyboard pattern: arrows/Home/End move focus, Enter/Space activates.
+  nav.addEventListener('keydown', e => {
+    const i = buttons.indexOf(document.activeElement);
+    if (i < 0) return;
+    const next = {ArrowRight: i + 1, ArrowLeft: i - 1, Home: 0, End: buttons.length - 1}[e.key];
+    if (next === undefined) return;
+    e.preventDefault();
+    buttons[(next + buttons.length) % buttons.length].focus();
+  });
   window.addEventListener('load', () => movePill(buttons[0]));
   window.addEventListener('resize', () => movePill(nav.querySelector('button.active')));
 
@@ -516,6 +537,7 @@
 
   function refreshSliceImage() {
     sliceImg.src = '/api/dicom/slice?t=' + Date.now();
+    sliceImg.alt = `${document.getElementById('m-modality').textContent} slice ${currentSlice + 1} of ${numSlices}`;
   }
 
   function applyLoadedState(data) {
@@ -599,7 +621,7 @@
   function show3DView() {
     if (numSlices === 0) {
       alert('Open a DICOM file or folder first.');
-      buttons[0].click();
+      selectTab(buttons[0]);
       return;
     }
     fadeOut(sliceImg);
@@ -655,6 +677,20 @@
     sliceCounter.textContent = `Slice: ${currentSlice+1} / ${numSlices}`;
     refreshSliceImage();
   }
+
+  // ↑/↓ = one slice, PageUp/PageDown = ten. Wheel over the image scrolls slices.
+  document.addEventListener('keydown', e => {
+    if (e.target.closest('input, select, [role=tab]')) return;
+    const d = {ArrowUp: -1, ArrowDown: 1, PageUp: -10, PageDown: 10}[e.key];
+    if (d === undefined || window.__canvas3DVisible) return;
+    e.preventDefault();
+    navSlice(d);
+  });
+  document.querySelector('.canvas').addEventListener('wheel', e => {
+    if (window.__canvas3DVisible || numSlices === 0) return;
+    e.preventDefault();
+    navSlice(Math.sign(e.deltaY));
+  }, {passive: false});
 
   function resetView() {
     // Placeholder for zoom/pan reset once those are wired server-side.
@@ -734,7 +770,7 @@
         } else if (s.done) {
           document.getElementById('segToggleRow').style.display = 'flex';
           document.getElementById('segOpacityWrap').style.display = 'block';
-          document.getElementById('swSeg').classList.toggle('on', s.show_overlay);
+          setSwitch(s.show_overlay);
           const opPct = Math.round(s.opacity * 100);
           document.getElementById('segOpacitySlider').value = opPct;
           document.getElementById('segOpacityV').textContent = opPct + '%';
@@ -768,7 +804,7 @@
   async function onToggleOverlay() {
     const sw = document.getElementById('swSeg');
     const nowOn = !sw.classList.contains('on');
-    sw.classList.toggle('on', nowOn);
+    setSwitch(nowOn);
     await api('/api/segment/overlay', {method:'POST', body: JSON.stringify({show: nowOn})});
     if (numSlices > 0) refreshSliceImage();
   }

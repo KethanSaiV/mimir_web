@@ -52,6 +52,22 @@ def check_min_font_size():
     assert not small, f"font sizes below 12px: {small}"
 
 
+def check_semantics():
+    assert 'role="tablist"' in HTML, "nav needs role=tablist"
+    tabs = re.findall(r"<button[^>]*data-i=[^>]*>", HTML)
+    assert len(tabs) == 8, f"expected 8 nav tabs, found {len(tabs)}"
+    for t in tabs:
+        assert 'role="tab"' in t and "aria-selected=" in t, f"tab missing role/aria-selected: {t}"
+    assert not re.search(r"<div[^>]*onclick", HTML), "clickable <div> — use <button>"
+    assert 'role="switch"' in HTML and "aria-checked=" in HTML, "overlay toggle must be role=switch"
+    assert ":focus-visible" in HTML, "no :focus-visible style"
+    assert "outline:none" not in HTML.replace(" ", ""), "outline:none removes the focus ring"
+    for rid in re.findall(r'<input type="range" id="(\w+)"', HTML):
+        assert f'for="{rid}"' in HTML, f"range #{rid} has no <label for>"
+    assert re.search(r'<img id="sliceImg"[^>]*alt=', HTML), "#sliceImg needs alt"
+    assert "<main" in HTML and HTML.count("<aside") == 2, "need <main> and 2 <aside> landmarks"
+
+
 def run():
     checks = [v for k, v in globals().items() if k.startswith("check_")]
     failed = 0
