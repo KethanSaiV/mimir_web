@@ -68,6 +68,12 @@ def check_semantics():
     assert "<main" in HTML and HTML.count("<aside") == 2, "need <main> and 2 <aside> landmarks"
 
 
+def check_feedback():
+    assert "alert(" not in HTML, "alert() blocks the window — use toast()"
+    assert 'aria-live="assertive"' in HTML and 'aria-live="polite"' in HTML, "need polite + assertive live regions"
+    assert ".btn:disabled" in HTML, "no disabled button style"
+
+
 def run():
     checks = [v for k, v in globals().items() if k.startswith("check_")]
     failed = 0

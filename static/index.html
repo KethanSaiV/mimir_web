@@ -140,13 +140,13 @@
     border-radius:var(--radius-md); padding:12px 16px; cursor:pointer;
     transition:all var(--dur) var(--ease); text-transform:uppercase;
   }
-  .btn:hover{background:var(--line-2); border-color:var(--teal-mid); color:var(--text-1); transform:translateY(-1px);}
+  .btn:hover:not(:disabled){background:var(--line-2); border-color:var(--teal-mid); color:var(--text-1); transform:translateY(-1px);}
   .btn svg{width:15px;height:15px;}
 
   .btn-primary{
     background:var(--teal-solid); border:1px solid var(--teal-mid); color:var(--text-1);
   }
-  .btn-primary:hover{
+  .btn-primary:hover:not(:disabled){
     background:var(--teal-solid); border-color:var(--teal-glow);
     box-shadow:0 0 18px rgba(17,126,96,.45); transform:translateY(-1px);
   }
@@ -223,6 +223,15 @@
     padding:16px; text-align:center;}
   .gesture-status{color:var(--teal-glow); font-weight:700; font-size:15px; margin-bottom:6px;}
   .lock-pill{font-size:var(--fs-xs); font-weight:700; letter-spacing:1px; color:var(--text-4); text-transform:uppercase;}
+  /* ── Toasts ──────────────────────────────── */
+  .toasts{position:fixed; right:20px; bottom:20px; z-index:20; display:flex; flex-direction:column; gap:8px; max-width:380px;}
+  .toasts > div{display:flex; flex-direction:column; gap:8px;}
+  .toast{background:var(--bg-3); border:1px solid var(--line-3); border-left:3px solid var(--teal-mid);
+    border-radius:var(--radius-md); padding:12px 14px; font-size:var(--fs-md); color:var(--text-2);
+    box-shadow:0 10px 28px rgba(0,0,0,.55); cursor:pointer;}
+  .toast.error{border-left-color:var(--red); color:var(--text-1);}
+
+  .btn:disabled{opacity:.45; cursor:not-allowed; transform:none; box-shadow:none;}
 </style>
 <script type="importmap">
 {
@@ -289,7 +298,7 @@
 
     <div class="card" id="cardSegment" style="display:none;">
       <div class="card-title">AI Segmentation</div>
-      <button class="btn btn-primary" id="btnRunSegment" onclick="runSegmentation()" style="width:100%; margin-bottom:12px; justify-content:center;">Run Segmentation</button>
+      <button class="btn btn-primary" id="btnRunSegment" onclick="runSegmentation()" style="width:100%; margin-bottom:12px; justify-content:center;">Run segmentation</button>
 
       <div id="segProgressWrap" style="display:none;">
         <div class="stat-label" style="margin-bottom:6px; display:block;">PROGRESS</div>
@@ -368,6 +377,10 @@
   </aside>
 </div>
 
+<div class="toasts">
+  <div id="toastLive" aria-live="polite"></div>
+  <div id="toastAlert" aria-live="assertive"></div>
+</div>
 <script src="/vendor/gsap.min.js"></script>
 <script>
   // ── Entrance animation ──────────────────────
@@ -375,6 +388,19 @@
   gsap.set('header', { y: -16 });
   gsap.set('.sidebar', { y: 12 });
   gsap.set('.viewer', { y: 16, scale: 0.985 });
+
+  // Non-blocking messages. Info fades after 4s; errors stay until clicked or Esc.
+  function toast(msg, kind = 'info') {
+    const el = document.createElement('div');
+    el.className = 'toast ' + kind;
+    el.textContent = msg;
+    document.getElementById(kind === 'error' ? 'toastAlert' : 'toastLive').appendChild(el);
+    el.addEventListener('click', () => el.remove());
+    if (kind !== 'error') setTimeout(() => el.remove(), 4000);
+  }
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape') document.querySelectorAll('.toast').forEach(t => t.remove());
+  });
   window.addEventListener('DOMContentLoaded', () => {
     const tl = gsap.timeline({ defaults: { ease: 'power3.out' } });
     tl.to('header', { opacity: 1, y: 0, duration: 0.55 })
@@ -464,6 +490,7 @@
     const s = await api('/api/segment/status');
     if (s.running) {
       document.getElementById('btnRunSegment').disabled = true;
+      document.getElementById('btnRunSegment').textContent = 'Segmenting…';
       document.getElementById('segProgressWrap').style.display = 'block';
       renderSegLog(s.log);
       pollSegmentStatus();
@@ -523,13 +550,17 @@
   let filtersLoaded = false;
 
   async function api(path, opts={}) {
-    const res = await fetch(path, {
-      headers: {'Content-Type':'application/json'},
-      ...opts
-    });
+    let res;
+    try {
+      res = await fetch(path, {headers: {'Content-Type':'application/json'}, ...opts});
+    } catch (e) {
+      toast('Lost connection to the MIMIR engine. Restart the app.', 'error');
+      throw e;
+    }
     if (!res.ok) {
-      const msg = await res.text();
-      alert('Error: ' + msg);
+      let msg = await res.text();
+      try { msg = JSON.parse(msg).detail ?? msg; } catch {}  // FastAPI sends {"detail": ...}
+      toast(String(msg), 'error');
       throw new Error(msg);
     }
     return res.json();
@@ -620,7 +651,7 @@
 
   function show3DView() {
     if (numSlices === 0) {
-      alert('Open a DICOM file or folder first.');
+      toast('Open a DICOM file or folder first.');
       selectTab(buttons[0]);
       return;
     }
@@ -746,9 +777,10 @@
     try {
       await api('/api/segment/run', {method:'POST'});
     } catch (e) {
-      return; // api() already alerted the error
+      return; // api() already showed the error
     }
     document.getElementById('btnRunSegment').disabled = true;
+    document.getElementById('btnRunSegment').textContent = 'Segmenting…';
     document.getElementById('segProgressWrap').style.display = 'block';
     document.getElementById('segErrorWrap').style.display = 'none';
     document.getElementById('segLog').innerHTML = '';
@@ -764,6 +796,7 @@
         pollSegmentStatus();
       } else {
         document.getElementById('btnRunSegment').disabled = false;
+        document.getElementById('btnRunSegment').textContent = 'Run segmentation';
         if (s.error) {
           document.getElementById('segErrorWrap').style.display = 'block';
           document.getElementById('segErrorWrap').textContent = s.error.split('\n')[0];
