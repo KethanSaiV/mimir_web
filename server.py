@@ -6,23 +6,26 @@ Local FastAPI server shown in a native window (pywebview). Runs entirely
 on the user's own machine — nothing is uploaded anywhere. The window is
 just the UI; all DICOM/AI work happens in this process.
 
-Step 1 scope (this file): DICOM open (file/folder via native OS dialog),
-slice rendering with windowing + filters, slice navigation.
-Segmentation / Registration / Path Planning / Gesture camera are wired
-in subsequent steps.
+Implemented: DICOM open, slice rendering (windowing, filters, overlay),
+3D mesh, segmentation. Registration / Path Planning / Gesture camera
+are planned.
 """
 
 from __future__ import annotations
+import logging
+import os
 import socket
 import threading
+from logging.handlers import RotatingFileHandler
 from pathlib import Path
 
 import webview
 
-from fastapi import FastAPI, HTTPException
-from fastapi.responses import Response, FileResponse
+from fastapi import FastAPI, HTTPException, Request
+from fastapi.responses import Response, FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
+from starlette.middleware.trustedhost import TrustedHostMiddleware
 
 from state import state
 from dicom_io import load_dicom_path
@@ -34,7 +37,21 @@ __version__ = "0.1.0"  # bump before tagging a release: git tag v<this>
 # Resolves to the bundle dir when frozen by PyInstaller, so cwd doesn't matter.
 STATIC = Path(__file__).parent / "static"
 
+LOG_FILE = Path(os.environ.get("LOCALAPPDATA") or Path.home()) / "MIMIR" / "mimir.log"
+log = logging.getLogger("mimir")
+
 app = FastAPI(title="MIMIR", version=__version__)
+# Blocks DNS rebinding: a page on another domain resolving to 127.0.0.1 sends its own Host.
+app.add_middleware(TrustedHostMiddleware, allowed_hosts=["127.0.0.1", "localhost"])
+
+
+@app.middleware("http")
+async def _json_posts_only(request: Request, call_next):
+    # Other websites can send body-less "simple" POSTs to localhost; a JSON
+    # content type forces a CORS preflight, which this server never answers.
+    if request.method == "POST" and not request.headers.get("content-type", "").startswith("application/json"):
+        return JSONResponse({"detail": "POST requests must be application/json."}, 415)
+    return await call_next(request)
 
 
 # ══════════════════════════════════════════════════════════════
@@ -69,7 +86,6 @@ def _load_and_reset(path: str) -> dict:
     state.zoom, state.pan_x, state.pan_y = 1.0, 0, 0
     state.seg_mask = None
     state.show_overlay = False
-    state.seg_running = False
     state.seg_log = []
     state.seg_error = None
     state.seg_active_labels = []
@@ -86,26 +102,28 @@ def _load_and_reset(path: str) -> dict:
     }
 
 
-@app.post("/api/dicom/open-file")
-def open_file():
-    path = _ask_path(webview.FileDialog.OPEN)
+def _open(dialog) -> dict:
+    # A running segmentation would write its result onto the newly opened scan.
+    if state.seg_running:
+        raise HTTPException(409, "Segmentation is running. Cancel it before opening another scan.")
+    path = _ask_path(dialog)
     if not path:
         return {"cancelled": True}
     try:
         return _load_and_reset(path)
     except Exception as e:
+        log.warning("Could not open %s: %s", path, e)
         raise HTTPException(400, str(e))
+
+
+@app.post("/api/dicom/open-file")
+def open_file():
+    return _open(webview.FileDialog.OPEN)
 
 
 @app.post("/api/dicom/open-folder")
 def open_folder():
-    path = _ask_path(webview.FileDialog.FOLDER)
-    if not path:
-        return {"cancelled": True}
-    try:
-        return _load_and_reset(path)
-    except Exception as e:
-        raise HTTPException(400, str(e))
+    return _open(webview.FileDialog.FOLDER)
 
 
 @app.get("/api/dicom/slice")
@@ -117,8 +135,8 @@ def get_slice():
 
 
 class WindowUpdate(BaseModel):
-    wl: float | None = None
-    ww: float | None = None
+    wl: float | None = Field(None, allow_inf_nan=False)
+    ww: float | None = Field(None, gt=0, allow_inf_nan=False)
 
 
 @app.post("/api/dicom/window")
@@ -226,18 +244,31 @@ def get_mesh(iso: float, step: int = 1):
 #  Segmentation (TotalSegmentator)
 # ══════════════════════════════════════════════════════════════
 
+_seg_lock = threading.Lock()
+_seg_thread: threading.Thread | None = None
+
+
 @app.post("/api/segment/run")
 def run_segment():
+    global _seg_thread
     if state.raw_volume is None or not state.dicom_path:
         raise HTTPException(400, "Open a DICOM file or folder first.")
-    if state.seg_running:
-        raise HTTPException(409, "Segmentation is already running.")
-
     from segmentation import run_segmentation
-    thread = threading.Thread(
-        target=run_segmentation, args=(state.dicom_path, state.modality), daemon=True)
-    thread.start()
+    with _seg_lock:
+        if state.seg_running:
+            raise HTTPException(409, "Segmentation is already running.")
+        state.seg_running = True  # set before start() so a second request can't slip in
+        _seg_thread = threading.Thread(
+            target=run_segmentation, args=(state.dicom_path, state.modality), daemon=True)
+        _seg_thread.start()
     return {"started": True}
+
+
+@app.post("/api/segment/cancel")
+def cancel_segment():
+    from segmentation import cancel
+    cancel()
+    return {"cancelling": state.seg_running}
 
 
 @app.get("/api/segment/status")
@@ -295,6 +326,12 @@ def index():
 
 if __name__ == "__main__":
     import uvicorn
+    LOG_FILE.parent.mkdir(parents=True, exist_ok=True)
+    # Root logger also catches uvicorn's "Exception in ASGI application" tracebacks.
+    logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s",
+                        handlers=[RotatingFileHandler(LOG_FILE, maxBytes=1_000_000, backupCount=3,
+                                                      encoding="utf-8")])
+    log.info("MIMIR %s starting", __version__)
     # Free port, already listening, so the window's first request just
     # queues until uvicorn is up (no race, no clash with a second instance).
     sock = socket.socket()
@@ -308,3 +345,11 @@ if __name__ == "__main__":
     window = webview.create_window(f"MIMIR {__version__}", f"http://127.0.0.1:{port}",
                                    width=1600, height=1000, min_size=(1100, 700))
     webview.start()  # blocks until the window is closed; daemon thread dies with it
+
+    # Don't leave a TotalSegmentator container/process running after the window closes;
+    # the join lets the worker's finally-block delete its temp folder.
+    if _seg_thread is not None and _seg_thread.is_alive():
+        from segmentation import cancel
+        cancel()
+        _seg_thread.join(timeout=15)
+    log.info("MIMIR stopped")

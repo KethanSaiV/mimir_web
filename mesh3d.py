@@ -45,6 +45,8 @@ def extract_mesh(volume: np.ndarray, spacing_zyx: tuple, iso_value: float,
     step_size: marching-cubes stride — higher = coarser/faster mesh
     Returns (vertices Nx3 float32 mm, faces Mx3 uint32, normals Nx3 float32)
     """
+    if min(volume.shape) < 2:
+        raise ValueError("3D view needs a series with at least 2 slices. Open a DICOM folder.")
     vol, spacing = _downsample_for_speed(volume, spacing_zyx, max_dim=max_dim)
 
     vmin, vmax = float(vol.min()), float(vol.max())

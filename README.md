@@ -141,15 +141,20 @@ App window (index.html)  ──HTTP──▶  FastAPI (server.py, 127.0.0.1:<fre
 | `GET`  | `/api/dicom/mesh-defaults` | Suggested iso value and slider range for the loaded modality |
 | `GET`  | `/api/dicom/mesh?iso=&step=` | Binary surface mesh at the given iso value |
 | `POST` | `/api/segment/run` | Start segmentation in the background |
+| `POST` | `/api/segment/cancel` | Stop the running segmentation (kills the container) |
 | `GET`  | `/api/segment/status` | Segmentation progress log, errors and results |
 | `GET`  | `/api/segment/legend` | Names and colours of the structures found |
 | `POST` | `/api/segment/overlay` | `{show, opacity}`: control the segmentation overlay |
 | `GET`  | `/api/status` | Overall workstation state |
 
+All `POST` requests must send `Content-Type: application/json`, and the server only answers to the `127.0.0.1`/`localhost` host. Both block other websites from driving the local server. Opening a scan returns `409` while segmentation is running.
+
 FastAPI also generates interactive API docs at `/docs` on the app's local port (when running from source, find the port with `netstat -ano | findstr LISTENING`).
 
 ## Troubleshooting
 
+- **Something failed and the message isn't enough.** Errors are logged to `%LOCALAPPDATA%\MIMIR\mimir.log`.
+- **"Segmentation is running" when opening a scan.** Click **Cancel segmentation** in the Segment tab, or wait for it to finish.
 - **The window is blank or won't open.** MIMIR needs the Microsoft Edge WebView2 runtime. It's built into Windows 10/11; if it was removed, reinstall it from Microsoft.
 - **"Docker is installed but not running."** Start Docker Desktop, wait until it says it's running, then click Run Segmentation again.
 - **Segmentation sits on "Downloading segmentation image".** The first run pulls about 15 GB. Later runs start immediately.

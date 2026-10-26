@@ -13,11 +13,13 @@ since it's a genuine deep-learning inference pass, not a shortcut.
 """
 
 from __future__ import annotations
+import logging
 import os
 import sys
 import shutil
 import subprocess
 import tempfile
+import uuid
 import numpy as np
 import SimpleITK as sitk
 
@@ -30,7 +32,7 @@ ORGAN_COLOURS = {
     2:  ("Kidney Right",        (0,   120, 255)),
     3:  ("Kidney Left",         (0,   200, 255)),
     4:  ("Gallbladder",         (0,   255, 220)),
-    5:  ("Liver",               (0,    60, 255)),
+    5:  ("Liver",               (30,  105, 210)),   # BGR: brown, distinct from aorta red
     6:  ("Stomach",             (255, 180,   0)),
     7:  ("Pancreas",            (0,   255, 255)),
     8:  ("Adrenal Right",       (255, 255,   0)),
@@ -44,7 +46,7 @@ ORGAN_COLOURS = {
     16: ("Iliac Vein Left",     (120,   0, 180)),
     17: ("Lung Right",          (100, 180, 255)),
     18: ("Lung Left",           (60,  140, 255)),
-    19: ("Heart",               (0,    80, 255)),
+    19: ("Heart",               (147,  20, 255)),   # BGR: deep pink
     20: ("Esophagus",           (255, 160, 100)),
     21: ("Urinary Bladder",     (255, 100, 100)),
     22: ("Prostate/Uterus",     (255, 150, 200)),
@@ -122,6 +124,27 @@ DOCKER_IMAGE = "wasserth/totalsegmentator:2.18.0"
 # A --noconsole build would otherwise flash a console window per subprocess.
 _NO_WINDOW = getattr(subprocess, "CREATE_NO_WINDOW", 0)
 
+log = logging.getLogger("mimir.segmentation")
+
+# The current run, so cancel() can stop it. Killing the `docker run` client
+# alone leaves the container running, hence the container name.
+_proc: subprocess.Popen | None = None
+_container: str | None = None
+_cancelled = False
+
+
+def cancel():
+    global _cancelled
+    if not state.seg_running:
+        return
+    _cancelled = True
+    if _container:
+        subprocess.run(["docker", "kill", _container], capture_output=True, creationflags=_NO_WINDOW)
+    if _proc is not None and _proc.poll() is None:
+        # ponytail: kills only the direct child; the source-only pip fallback may leave
+        # nnU-Net worker processes behind. Use `taskkill /T` if that shows up in practice.
+        _proc.kill()
+
 
 def _seg_command(tmp_dir: str, nii_in: str, out_dir: str) -> list | None:
     """TotalSegmentator command line up to (not incl.) task/device flags.
@@ -135,8 +158,10 @@ def _seg_command(tmp_dir: str, nii_in: str, out_dir: str) -> list | None:
         if subprocess.run(["docker", "image", "inspect", DOCKER_IMAGE], capture_output=True,
                           creationflags=_NO_WINDOW).returncode != 0:
             _log("Downloading segmentation image (~15 GB, first time only)...")
+        global _container
+        _container = f"mimir-seg-{uuid.uuid4().hex[:8]}"
         # Named volume keeps model weights across --rm runs.
-        return ["docker", "run", "--rm", "--ipc=host",
+        return ["docker", "run", "--rm", "--ipc=host", "--name", _container,
                 "-v", f"{tmp_dir}:/data", "-v", "mimir-totalseg:/root/.totalsegmentator",
                 DOCKER_IMAGE, "TotalSegmentator",
                 "-i", "/data/input.nii.gz", "-o", "/data/segs"]
@@ -164,9 +189,11 @@ def run_segmentation(dicom_path: str, modality: str):
     This mirrors the desktop app's SegmentationWorker.run() logic exactly,
     with Qt signals replaced by writes to the shared state object.
     """
+    global _proc, _container, _cancelled
     state.seg_running = True
     state.seg_log = []
     state.seg_error = None
+    _proc, _container, _cancelled = None, None, False
     tmp_dir = None
     try:
         task = _pick_task(modality)
@@ -198,20 +225,24 @@ def run_segmentation(dicom_path: str, modality: str):
         sitk.WriteImage(reader.Execute(), nii_in)
 
         cmd = _seg_command(tmp_dir, nii_in, out_dir)
-        if cmd is None:
+        if cmd is None or _cancelled:
             return
 
         _log(f"Running TotalSegmentator ({task}, CPU fast)...")
-        proc = subprocess.Popen(
+        proc = _proc = subprocess.Popen(
             cmd + ["-ta", task, "-d", "cpu", "--fast"],
             stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
             text=True, bufsize=1, creationflags=_NO_WINDOW,
         )
+        if _cancelled:
+            cancel()  # cancel() ran between the check above and Popen; stop what just started
         for line in proc.stdout:
             line = line.strip()
             if line and not line.startswith(("W0", "E0", "===")):
                 _log(line[:150])
         proc.wait()
+        if _cancelled:
+            return
         if proc.returncode != 0:
             state.seg_error = f"TotalSegmentator failed (exit code {proc.returncode})."
             return
@@ -252,9 +283,15 @@ def run_segmentation(dicom_path: str, modality: str):
 
     except Exception as e:
         import traceback
+        log.exception("Segmentation crashed")
         state.seg_error = f"{e}\n{traceback.format_exc()}"
     finally:
+        if _cancelled:
+            state.seg_error = "Segmentation cancelled."
+        if state.seg_error:
+            log.warning("Segmentation ended: %s", state.seg_error.split("\n")[0])
         state.seg_running = False
+        _proc = _container = None
         if tmp_dir:
             shutil.rmtree(tmp_dir, ignore_errors=True)
 

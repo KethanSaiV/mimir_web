@@ -11,6 +11,7 @@ from __future__ import annotations
 import os
 import numpy as np
 import pydicom
+from pydicom.pixels import apply_modality_lut
 import SimpleITK as sitk
 
 
@@ -35,10 +36,15 @@ def load_dicom_path(path: str):
     """
     if os.path.isfile(path):
         ds = pydicom.dcmread(path)
-        arr = ds.pixel_array.astype(np.float32)
+        # Rescale slope/intercept -> HU, matching what the SimpleITK series path returns.
+        arr = apply_modality_lut(ds.pixel_array, ds).astype(np.float32)
         if arr.ndim == 2:
             arr = arr[np.newaxis, ...]
-        return arr, sitk.GetImageFromArray(arr), _meta(ds)
+        img = sitk.GetImageFromArray(arr)
+        if "PixelSpacing" in ds:
+            dy, dx = (float(v) for v in ds.PixelSpacing)
+            img.SetSpacing((dx, dy, float(ds.get("SliceThickness") or 1.0)))
+        return arr, img, _meta(ds)
 
     if os.path.isdir(path):
         reader = sitk.ImageSeriesReader()

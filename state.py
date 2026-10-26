@@ -3,7 +3,7 @@ state.py
 MIMIR — Gesture-Guided Surgical Intelligence
 
 Server-side session state. Since this runs as a single-user local server
-(one instance per machine, launched by run.py), a single in-memory state
+(one instance per machine, launched by server.py), a single in-memory state
 object is sufficient — no per-session/multi-tenant complexity needed.
 """
 
@@ -71,8 +71,11 @@ class WorkstationState:
         Defensive about Z-dimension mismatches between the two volumes
         (shouldn't normally happen since both come from the same DICOM
         series, but TotalSegmentator's NIfTI round-trip could in theory
-        produce a slightly different Z count)."""
+        produce a slightly different Z count). A different in-plane size
+        means the mask isn't for this scan, so no overlay is drawn."""
         if self.seg_mask is None or self.raw_volume is None:
+            return None
+        if self.seg_mask.shape[1:] != self.raw_volume.shape[1:]:
             return None
         mz = self.seg_mask.shape[0]
         vz = self.raw_volume.shape[0]
