@@ -629,6 +629,7 @@
         strSlider.value = d.strength;
         document.getElementById('filterStrengthV').textContent = d.strength.toFixed(1);
         strSlider.style.setProperty('--val', ((d.strength - 0.1) / (2.0 - 0.1) * 100) + '%');
+        updateOverlays();
         filtersLoaded = true;
       });
     }
