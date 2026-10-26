@@ -114,6 +114,9 @@
   }
   nav button:hover{color:var(--text-2);}
   nav button.active{color:var(--text-1);}
+  nav button[aria-disabled="true"]{color:var(--text-5); cursor:not-allowed;}
+  nav button[aria-disabled="true"]:hover{color:var(--text-4);}
+  .nav-sep{width:1px; align-self:stretch; margin:8px 6px; background:var(--line-3);}
 
   .lock-indicator{display:flex; align-items:center; gap:6px; min-width:260px; justify-content:flex-end;
     font-size:var(--fs-xs); font-weight:700; letter-spacing:1px; color:var(--text-4); text-transform:uppercase;}
@@ -216,12 +219,15 @@
     font-family:var(--font-display); font-size:var(--fs-xs); font-weight:700; letter-spacing:2px; color:var(--teal-glow); margin-bottom:10px;}
   .cam-feed{background:var(--bg-0); border:1px solid var(--line-2); border-radius:var(--radius-md);
     aspect-ratio:4/3; display:flex; align-items:center; justify-content:center; color:var(--text-4); font-size:var(--fs-sm);}
-  .cam-status{display:flex; align-items:center; gap:8px; margin-top:12px; font-size:13px; font-weight:600; color:var(--teal-glow);}
-  .pulse-dot{width:8px; height:8px; border-radius:50%; background:var(--teal-glow); animation:pulse 1.1s ease-in-out infinite;}
+  .cam-status{display:flex; align-items:center; gap:8px; margin-top:12px; font-size:var(--fs-sm); font-weight:600; color:var(--text-4);}
+  .status-dot{width:8px; height:8px; border-radius:50%; background:var(--text-5);}
+  /* data-state="active" is for the gesture backend to set once it exists */
+  .cam-status[data-state="active"]{color:var(--teal-glow);}
+  .cam-status[data-state="active"] .status-dot{background:var(--teal-glow); animation:pulse 1.1s ease-in-out infinite;}
   @keyframes pulse{0%,100%{opacity:1;} 50%{opacity:.3;}}
-  .gesture-box{margin-top:12px; background:var(--bg-3); border:1px solid var(--teal-core); border-radius:var(--radius-md);
+  .gesture-box{margin-top:12px; background:var(--bg-3); border:1px solid var(--line-3); border-radius:var(--radius-md);
     padding:16px; text-align:center;}
-  .gesture-status{color:var(--teal-glow); font-weight:700; font-size:15px; margin-bottom:6px;}
+  .gesture-status{color:var(--text-3); font-weight:700; font-size:var(--fs-md); margin-bottom:6px;}
   .lock-pill{font-size:var(--fs-xs); font-weight:700; letter-spacing:1px; color:var(--text-4); text-transform:uppercase;}
   /* ── Toasts ──────────────────────────────── */
   .toasts{position:fixed; right:20px; bottom:20px; z-index:20; display:flex; flex-direction:column; gap:8px; max-width:380px;}
@@ -257,16 +263,17 @@
   <nav id="nav" role="tablist" aria-label="Tools">
     <div class="pill-indicator" id="pill"></div>
     <button type="button" role="tab" aria-selected="true"  tabindex="0"  class="active" data-i="0">DICOM</button>
-    <button type="button" role="tab" aria-selected="false" tabindex="-1" data-i="1" id="tab3d">3D VIEW</button>
-    <button type="button" role="tab" aria-selected="false" tabindex="-1" data-i="2" id="tabFilter">FILTER</button>
-    <button type="button" role="tab" aria-selected="false" tabindex="-1" data-i="3" id="tabSegment">SEGMENT</button>
-    <button type="button" role="tab" aria-selected="false" tabindex="-1" data-i="4">REGISTER</button>
-    <button type="button" role="tab" aria-selected="false" tabindex="-1" data-i="5">PATH PLAN</button>
-    <button type="button" role="tab" aria-selected="false" tabindex="-1" data-i="6">MEASURE</button>
-    <button type="button" role="tab" aria-selected="false" tabindex="-1" data-i="7">REVIEW</button>
+    <button type="button" role="tab" aria-selected="false" tabindex="-1" data-i="1" id="tab3d"      data-needs-scan aria-disabled="true">3D VIEW</button>
+    <button type="button" role="tab" aria-selected="false" tabindex="-1" data-i="2" id="tabFilter"  data-needs-scan aria-disabled="true">FILTER</button>
+    <button type="button" role="tab" aria-selected="false" tabindex="-1" data-i="3" id="tabSegment" data-needs-scan aria-disabled="true">SEGMENT</button>
+    <span class="nav-sep" aria-hidden="true"></span>
+    <button type="button" role="tab" aria-selected="false" tabindex="-1" data-i="4" data-planned="Registration"  aria-disabled="true" title="Planned for a later release">REGISTER</button>
+    <button type="button" role="tab" aria-selected="false" tabindex="-1" data-i="5" data-planned="Path planning" aria-disabled="true" title="Planned for a later release">PATH PLAN</button>
+    <button type="button" role="tab" aria-selected="false" tabindex="-1" data-i="6" data-planned="Measurement"   aria-disabled="true" title="Planned for a later release">MEASURE</button>
+    <button type="button" role="tab" aria-selected="false" tabindex="-1" data-i="7" data-planned="Review"        aria-disabled="true" title="Planned for a later release">REVIEW</button>
   </nav>
 
-  <div class="lock-indicator" id="lockIndicator">Unlocked</div>
+  <div class="lock-indicator" id="lockIndicator">Gestures: off</div>
 </header>
 
 <div class="layout">
@@ -358,21 +365,20 @@
       <div id="loading3d" style="display:none; position:absolute; color:var(--teal-glow); font-family:var(--font-display); font-size:12px; letter-spacing:2px;">BUILDING MESH…</div>
     </div>
     <div class="viewer-nav">
-      <button class="btn" title="Previous slice (↑ or scroll)" onclick="navSlice(-1)">◀ Prev</button>
+      <button class="btn" id="btnPrev" onclick="navSlice(-1)" title="Previous slice (↑ or scroll)" disabled>◀ Prev</button>
       <div class="btn" style="flex:0 0 140px; cursor:default;" id="sliceCounter">Slice: — / —</div>
-      <button class="btn" title="Next slice (↓ or scroll)" onclick="navSlice(1)">Next ▶</button>
-      <button class="btn" onclick="resetView()">↻ Reset View</button>
+      <button class="btn" id="btnNext" onclick="navSlice(1)" title="Next slice (↓ or scroll)" disabled>Next ▶</button>
+      <button class="btn" id="btnReset" onclick="resetView()" title="Reset the 3D camera" disabled>↻ Reset View</button>
     </div>
   </main>
 
   <aside class="sidebar right" aria-label="Gesture control">
-    <div class="cam-title">📷 Gesture Camera</div>
-    <div class="cam-feed">camera preview</div>
-    <div class="cam-status"><div class="pulse-dot"></div> Camera: active</div>
-
+    <div class="cam-title">Gesture camera</div>
+    <div class="cam-feed">Gesture control arrives in a later release.</div>
+    <div class="cam-status" id="camStatus" data-state="off"><span class="status-dot"></span>Camera: not connected</div>
     <div class="gesture-box">
-      <div class="gesture-status">Waiting…</div>
-      <div class="lock-pill">🔓 Unlocked</div>
+      <div class="gesture-status">Gestures off</div>
+      <div class="lock-pill">Using mouse and keyboard</div>
     </div>
   </aside>
 </div>
@@ -513,6 +519,12 @@
   }
 
   function selectTab(btn) {
+    if (btn.getAttribute('aria-disabled') === 'true') {
+      toast(btn.dataset.planned
+        ? `${btn.dataset.planned} is planned for a later release.`
+        : 'Open a DICOM file or folder first.');
+      return;
+    }
     buttons.forEach(b => {
       const on = b === btn;
       b.classList.toggle('active', on);
@@ -617,11 +629,13 @@
       slider.style.setProperty('--val', ((d.default - d.min) / (d.max - d.min) * 100) + '%');
     });
 
+    nav.querySelectorAll('[data-needs-scan]').forEach(b => b.removeAttribute('aria-disabled'));
     // Re-apply visibility rules for whichever tab is currently active,
     // now that a volume is loaded (tab-specific cards only reveal once
     // a scan exists).
     const activeBtn = nav.querySelector('button.active');
     if (activeBtn) syncTabCards(activeBtn.id);
+    syncViewerChrome();
   }
 
   window.__canvas3DVisible = false;
@@ -647,18 +661,15 @@
     hideCanvas3D();
     if (numSlices > 0) { fadeIn(sliceImg, 'block'); }
     else { fadeIn(emptyState, 'flex'); }
+    syncViewerChrome();
   }
 
   function show3DView() {
-    if (numSlices === 0) {
-      toast('Open a DICOM file or folder first.');
-      selectTab(buttons[0]);
-      return;
-    }
     fadeOut(sliceImg);
     fadeOut(emptyState);
     showCanvas3D();
     loadMesh(parseFloat(document.getElementById('isoSlider').value));
+    syncViewerChrome();
   }
 
   async function openFile() {
@@ -724,7 +735,15 @@
   }, {passive: false});
 
   function resetView() {
-    // Placeholder for zoom/pan reset once those are wired server-side.
+    if (window.__canvas3DVisible) window.reset3DView();
+  }
+
+  // Enable only the viewer controls that do something in the current view.
+  function syncViewerChrome() {
+    const in3d = window.__canvas3DVisible;
+    document.getElementById('btnPrev').disabled = numSlices === 0 || in3d;
+    document.getElementById('btnNext').disabled = numSlices === 0 || in3d;
+    document.getElementById('btnReset').disabled = !in3d;
   }
 
   let isoDebounce = null;
@@ -937,6 +956,13 @@
     window.addEventListener('resize', resizeToContainer);
 
     sceneReady = true;
+  };
+
+  window.reset3DView = function () {
+    if (!currentMesh) return;
+    camera.position.set(0, 0, currentMesh.geometry.boundingSphere.radius * 2.8);
+    controls.target.set(0, 0, 0);
+    controls.update();
   };
 
   function parseMeshBinary(buf) {

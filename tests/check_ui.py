@@ -74,6 +74,17 @@ def check_feedback():
     assert ".btn:disabled" in HTML, "no disabled button style"
 
 
+def check_planned_systems():
+    for name in ("Registration", "Path planning", "Measurement", "Review"):
+        tag = re.search(rf'<button[^>]*data-planned="{name}"[^>]*>', HTML)
+        assert tag and 'aria-disabled="true"' in tag.group(0), f"{name} tab must be data-planned + aria-disabled"
+    for tid in ("tab3d", "tabFilter", "tabSegment"):
+        tag = re.search(rf'<button[^>]*id="{tid}"[^>]*>', HTML).group(0)
+        assert "data-needs-scan" in tag and 'aria-disabled="true"' in tag, f"#{tid} must start disabled"
+    assert "Camera: active" not in HTML, "UI claims the camera is active"
+    assert "Placeholder for zoom/pan" not in HTML, "Reset view is still a no-op"
+
+
 def run():
     checks = [v for k, v in globals().items() if k.startswith("check_")]
     failed = 0
