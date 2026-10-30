@@ -15,6 +15,7 @@ from preprocessing_engine import PreprocessingEngine
 from state import state
 
 _engine = PreprocessingEngine()
+_PNG_FAST = [cv2.IMWRITE_PNG_COMPRESSION, 0]  # localhost only: skip compression, ~2x faster encode
 
 
 def render_current_slice_png() -> bytes:
@@ -35,12 +36,12 @@ def render_current_slice_png() -> bytes:
         mask_slice = state.current_mask_slice
         if mask_slice is not None:
             disp = apply_overlay(img, mask_slice, state.opacity)
-            ok, buf = cv2.imencode(".png", disp)
+            ok, buf = cv2.imencode(".png", disp, _PNG_FAST)
             if not ok:
                 raise RuntimeError("Failed to encode slice image.")
             return buf.tobytes()
 
-    ok, buf = cv2.imencode(".png", img)
+    ok, buf = cv2.imencode(".png", img, _PNG_FAST)
     if not ok:
         raise RuntimeError("Failed to encode slice image.")
     return buf.tobytes()

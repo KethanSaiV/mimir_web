@@ -18,7 +18,7 @@ Client-side windowing (approach B) is the upgrade if drag-W/L still feels slow a
 - `GET /api/dicom/slice?i=&wl=&ww=` renders exactly that view. All params optional; `i` is clamped to the volume,
   `ww` must be > 0, non-finite values give 422. Given values are written to `state` so `/api/status` (page refresh
   resume) stays correct.
-- `render.py` encodes PNG with `IMWRITE_PNG_COMPRESSION=1` (lossless, much faster than the default 3).
+- `render.py` encodes PNG with `IMWRITE_PNG_COMPRESSION=0` (still lossless; ~2x faster encode, ~2x bytes, irrelevant on localhost).
 - `/api/dicom/nav` and `/api/dicom/window` stay; the frontend stops using them.
 
 ## Frontend

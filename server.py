@@ -21,7 +21,7 @@ from pathlib import Path
 
 import webview
 
-from fastapi import FastAPI, HTTPException, Request
+from fastapi import FastAPI, HTTPException, Query, Request
 from fastapi.responses import Response, FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
@@ -127,9 +127,21 @@ def open_folder():
 
 
 @app.get("/api/dicom/slice")
-def get_slice():
+def get_slice(
+    i: int | None = None,
+    wl: float | None = Query(None, allow_inf_nan=False),
+    ww: float | None = Query(None, gt=0, allow_inf_nan=False),
+):
+    # The page sends the whole view with each request; storing it keeps
+    # /api/status (page-refresh resume) in step.
     if state.raw_volume is None:
         raise HTTPException(404, "No volume loaded.")
+    if i is not None:
+        state.current_slice = max(0, min(state.num_slices - 1, i))
+    if wl is not None:
+        state.wl = wl
+    if ww is not None:
+        state.ww = ww
     png = render_current_slice_png()
     return Response(content=png, media_type="image/png")
 

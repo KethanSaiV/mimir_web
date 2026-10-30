@@ -51,6 +51,16 @@ def check_window_validation():
         assert r.status_code == 422, f"ww={ww} accepted"
 
 
+def check_slice_params():
+    _open_ct_small()
+    r = c.get("/api/dicom/slice?i=99&wl=50&ww=300")
+    assert r.status_code == 200 and r.headers["content-type"] == "image/png", r.text
+    assert (state.current_slice, state.wl, state.ww) == (0, 50, 300), "slice params not applied"
+    for q in ("ww=0", "wl=nan"):
+        r = c.get(f"/api/dicom/slice?{q}")
+        assert r.status_code == 422, f"{q} accepted ({r.status_code})"
+
+
 def check_mismatched_mask_does_not_crash():
     _open_ct_small()
     state.seg_mask = np.ones((1, 10, 10), np.int32)

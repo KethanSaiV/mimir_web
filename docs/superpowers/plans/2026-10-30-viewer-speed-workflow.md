@@ -17,7 +17,7 @@ Run checks from `mimir_web/`: `../venv/Scripts/python.exe tests/check_api.py` an
       Run: FAIL (wl not stored).
 - [ ] `server.py`: `get_slice(i: int | None = None, wl: float | None = Query(None, allow_inf_nan=False),
       ww: float | None = Query(None, gt=0, allow_inf_nan=False))`; clamp `i` into `state.current_slice`, store wl/ww.
-- [ ] `render.py`: pass `[cv2.IMWRITE_PNG_COMPRESSION, 1]` to both `imencode` calls.
+- [ ] `render.py`: pass `[cv2.IMWRITE_PNG_COMPRESSION, 0]` to both `imencode` calls.
 - [ ] Run check_api: all pass. Commit.
 
 ### Task 2: Latest-wins rendering in the page
