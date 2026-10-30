@@ -42,5 +42,10 @@ Run checks from `mimir_web/`: `../venv/Scripts/python.exe tests/check_api.py` an
 
 ### Task 4: Manual verification
 
-- [ ] Run the app, open a series: wheel and scrubber are smooth, drag-W/L follows the mouse, Ctrl+wheel zooms at the
+- [x] Run the app, open a series: wheel and scrubber are smooth, drag-W/L follows the mouse, Ctrl+wheel zooms at the
       cursor, right-drag pans, double-click resets, presets animate, filter and overlay still apply, 3D still works.
+
+**Verified 2026-10-30** in headless Edge over CDP with real input events, against a 120-slice 512² CT phantom
+(19/19): 30-event wheel burst → 2 requests, never overlapping; one step ≈ 5–10 ms; Ctrl+wheel zooms the image
+(not the page) and keeps the point under the cursor fixed; drag W/L, pan, double-click reset, presets, scrubber,
+filter and 3D chrome all behave. Not covered: the real pywebview window and the segmentation overlay (needs Docker).
