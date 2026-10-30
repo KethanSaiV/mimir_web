@@ -213,6 +213,10 @@
 
   .viewer-nav{display:flex; gap:12px;}
   .viewer-nav .btn{flex:1;}
+  .viewer-nav input[type=range]{flex:2; margin:0; align-self:center;}
+  .viewer-hint{font-size:var(--fs-xs); color:var(--text-4); text-align:center;}
+  #sliceImg{user-select:none;}
+  .sr-only{position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0 0 0 0); white-space:nowrap;}
 
   /* ── Camera panel ────────────────────────── */
   .cam-title{display:flex; align-items:center; gap:8px; justify-content:center;
@@ -360,7 +364,7 @@
         <div class="empty-sub">Open a DICOM file or folder to begin viewing, filtering, segmenting, registering, and planning needle paths.</div>
         <button class="btn btn-primary" style="margin-top:6px; padding:13px 26px;" onclick="openFile()">📁 Open DICOM File</button>
       </div>
-      <img id="sliceImg" alt="" style="display:none; max-width:100%; max-height:100%; object-fit:contain;">
+      <img id="sliceImg" alt="" draggable="false" style="display:none; max-width:100%; max-height:100%; object-fit:contain;">
       <div class="overlays" id="overlays" hidden>
         <div class="ov tl" id="ovTL"></div>
         <div class="ov tr" id="ovTR" aria-live="polite" aria-atomic="true"></div>
@@ -372,9 +376,12 @@
     </div>
     <div class="viewer-nav">
       <button class="btn" id="btnPrev" onclick="navSlice(-1)" title="Previous slice (↑ or scroll)" disabled>◀ Prev</button>
+      <label class="sr-only" for="sliceSlider">Slice</label>
+      <input type="range" id="sliceSlider" min="0" max="0" value="0" style="--val:0%" oninput="onSliceInput()" disabled>
       <button class="btn" id="btnNext" onclick="navSlice(1)" title="Next slice (↓ or scroll)" disabled>Next ▶</button>
-      <button class="btn" id="btnReset" onclick="resetView()" title="Reset the 3D camera" disabled>↻ Reset View</button>
+      <button class="btn" id="btnReset" onclick="resetView()" title="Reset zoom, pan and window (R or double-click)" disabled>↻ Reset View</button>
     </div>
+    <div class="viewer-hint" id="viewerHint" hidden>Wheel: slice · Drag: window/level · Right-drag: pan · Ctrl+wheel: zoom · Double-click: reset</div>
   </main>
 
   <aside class="sidebar right" aria-label="Gesture control">
@@ -583,11 +590,34 @@
     return res.json();
   }
 
-  sliceImg.onerror = () => toast('Could not render this slice. See the log file for details.', 'error');
+  // The page owns the view; every slice request carries all of it.
+  let zoom = 1, panX = 0, panY = 0, initWl = 40, initWw = 400;
+  let sliceLoading = false, slicePending = false;
 
   function refreshSliceImage() {
-    sliceImg.src = '/api/dicom/slice?t=' + Date.now();
+    const slider = document.getElementById('sliceSlider');
+    slider.value = currentSlice;
+    slider.style.setProperty('--val', (numSlices > 1 ? currentSlice / (numSlices - 1) * 100 : 0) + '%');
     sliceImg.alt = `${document.getElementById('m-modality').textContent} slice ${currentSlice + 1} of ${numSlices}`;
+    updateOverlays();
+    // Latest wins: while one image loads, later requests collapse into one follow-up.
+    if (sliceLoading) { slicePending = true; return; }
+    sliceLoading = true;
+    const img = new Image();
+    img.onload = () => { sliceImg.src = img.src; sliceDone(); };
+    img.onerror = () => { toast('Could not render this slice. See the log file for details.', 'error'); sliceDone(); };
+    img.src = `/api/dicom/slice?i=${currentSlice}&wl=${wlSlider.value}&ww=${wwSlider.value}&t=${Date.now()}`;
+  }
+
+  function sliceDone() {
+    sliceLoading = false;
+    if (slicePending) { slicePending = false; refreshSliceImage(); }
+  }
+
+  // Individual translate/scale properties, because GSAP's fadeIn owns `transform`.
+  function applyTransform() {
+    sliceImg.style.translate = `${panX}px ${panY}px`;
+    sliceImg.style.scale = zoom;
     updateOverlays();
   }
 
@@ -598,7 +628,10 @@
     $('ovTL').textContent = `${$('m-modality').textContent} · ${$('m-patient').textContent}`;
     $('ovTR').textContent = `Slice ${currentSlice + 1} / ${numSlices}`;
     $('ovBL').textContent = `WL ${wlv.textContent} · WW ${wwv.textContent}`;
-    $('ovBR').textContent = f.selectedIndex > 0 ? `${f.value} × ${$('filterStrengthV').textContent}` : '';
+    $('ovBR').textContent = [
+      f.selectedIndex > 0 ? `${f.value} × ${$('filterStrengthV').textContent}` : '',
+      zoom > 1 ? `Zoom ${zoom.toFixed(1)}×` : '',
+    ].filter(Boolean).join(' · ');
   }
 
   function applyLoadedState(data) {
@@ -622,6 +655,10 @@
     wlv.textContent = data.wl; wwv.textContent = data.ww;
     wlSlider.style.setProperty('--val', ((data.wl+1000)/4000*100)+'%');
     wwSlider.style.setProperty('--val', (data.ww/4000*100)+'%');
+    initWl = data.wl; initWw = data.ww;
+    zoom = 1; panX = panY = 0;
+    applyTransform();
+    document.getElementById('sliceSlider').max = numSlices - 1;
 
     fadeOut(emptyState);
     fadeIn(sliceImg, 'block');
@@ -709,57 +746,89 @@
     applyLoadedState(data);
   }
 
-  let windowDebounce = null;
   function onWindowInput() {
     const wl = parseFloat(wlSlider.value), ww = parseFloat(wwSlider.value);
     wlv.textContent = wl; wwv.textContent = ww;
     wlSlider.style.setProperty('--val', ((wl+1000)/4000*100)+'%');
     wwSlider.style.setProperty('--val', (ww/4000*100)+'%');
-    clearTimeout(windowDebounce);
-    windowDebounce = setTimeout(async () => {
-      await api('/api/dicom/window', {method:'POST', body: JSON.stringify({wl, ww})});
-      if (numSlices > 0) refreshSliceImage();
-    }, 40);
+    if (numSlices > 0) refreshSliceImage();
   }
 
-  async function applyPreset(wl, ww) {
-    const fromWl = parseFloat(wlv.textContent), fromWw = parseFloat(wwv.textContent);
-    countUp(wlv, fromWl, wl);
-    countUp(wwv, fromWw, ww);
-    gsap.to(wlSlider, { value: wl, duration: 0.35, ease: 'power2.out',
-      onUpdate: () => wlSlider.style.setProperty('--val', ((wlSlider.value*1+1000)/4000*100)+'%') });
-    gsap.to(wwSlider, { value: ww, duration: 0.35, ease: 'power2.out',
-      onUpdate: () => wwSlider.style.setProperty('--val', (wwSlider.value/4000*100)+'%') });
-    clearTimeout(windowDebounce);
-    windowDebounce = setTimeout(async () => {
-      await api('/api/dicom/window', {method:'POST', body: JSON.stringify({wl, ww})});
-      if (numSlices > 0) refreshSliceImage();
-    }, 360);
+  // Animates through the normal render path; latest-wins keeps it cheap.
+  function applyPreset(wl, ww) {
+    gsap.to(wlSlider, { value: wl, duration: 0.35, ease: 'power2.out' });
+    gsap.to(wwSlider, { value: ww, duration: 0.35, ease: 'power2.out', onUpdate: onWindowInput });
   }
 
-  async function navSlice(delta) {
+  function navSlice(delta) {
     if (numSlices === 0) return;
-    const data = await api('/api/dicom/nav', {method:'POST', body: JSON.stringify({delta})});
-    currentSlice = data.current_slice;
+    currentSlice = Math.max(0, Math.min(numSlices - 1, currentSlice + delta));
     refreshSliceImage();
   }
 
-  // ↑/↓ = one slice, PageUp/PageDown = ten. Wheel over the image scrolls slices.
+  function onSliceInput() {
+    currentSlice = parseInt(document.getElementById('sliceSlider').value);
+    refreshSliceImage();
+  }
+
+  // ↑/↓ = one slice, PageUp/PageDown = ten, R = reset view.
   document.addEventListener('keydown', e => {
     if (e.target.closest('input, select, [role=tab]')) return;
+    if ((e.key === 'r' || e.key === 'R') && !e.ctrlKey && !e.metaKey && !e.altKey) { resetView(); return; }
     const d = {ArrowUp: -1, ArrowDown: 1, PageUp: -10, PageDown: 10}[e.key];
     if (d === undefined || window.__canvas3DVisible) return;
     e.preventDefault();
     navSlice(d);
   });
-  document.querySelector('.canvas').addEventListener('wheel', e => {
-    if (window.__canvas3DVisible || numSlices === 0) return;
+
+  // PACS mouse on the 2D image: wheel = slice, Ctrl+wheel = zoom,
+  // left-drag = window/level, right-drag = pan, double-click = reset.
+  const canvasEl = document.querySelector('.canvas');
+  const in2D = () => numSlices > 0 && !window.__canvas3DVisible;
+  let drag = null, hintDismissed = false;
+
+  canvasEl.addEventListener('wheel', e => {
+    if (!in2D()) return;
     e.preventDefault();
-    navSlice(Math.sign(e.deltaY));
+    if (!e.ctrlKey) { navSlice(Math.sign(e.deltaY)); return; }
+    // Keep the image point under the cursor fixed while zooming.
+    const r = canvasEl.getBoundingClientRect();
+    const cx = e.clientX - r.left - r.width / 2, cy = e.clientY - r.top - r.height / 2;
+    const z = Math.max(1, Math.min(8, zoom * (e.deltaY < 0 ? 1.15 : 1 / 1.15)));
+    panX = cx - (cx - panX) * z / zoom;
+    panY = cy - (cy - panY) * z / zoom;
+    zoom = z;
+    if (zoom === 1) panX = panY = 0;
+    applyTransform();
   }, {passive: false});
 
+  canvasEl.addEventListener('pointerdown', e => {
+    if (!in2D() || (e.button !== 0 && e.button !== 2)) return;
+    e.preventDefault();
+    drag = { mode: e.button === 0 ? 'wl' : 'pan', x: e.clientX, y: e.clientY };
+    canvasEl.setPointerCapture(e.pointerId);
+  });
+  canvasEl.addEventListener('pointermove', e => {
+    if (!drag) return;
+    const dx = e.clientX - drag.x, dy = e.clientY - drag.y;
+    drag.x = e.clientX; drag.y = e.clientY;
+    if (!hintDismissed) { hintDismissed = true; syncViewerChrome(); }
+    if (drag.mode === 'pan') { panX += dx; panY += dy; applyTransform(); return; }
+    wwSlider.value = parseFloat(wwSlider.value) + dx * 4;  // →: wider
+    wlSlider.value = parseFloat(wlSlider.value) + dy * 2;  // ↓: higher level
+    onWindowInput();
+  });
+  canvasEl.addEventListener('pointerup', () => { drag = null; });
+  canvasEl.addEventListener('pointercancel', () => { drag = null; });
+  canvasEl.addEventListener('contextmenu', e => { if (in2D()) e.preventDefault(); });
+  canvasEl.addEventListener('dblclick', () => { if (in2D()) resetView(); });
+
   function resetView() {
-    if (window.__canvas3DVisible) window.reset3DView();
+    if (window.__canvas3DVisible) { window.reset3DView(); return; }
+    if (numSlices === 0) return;
+    zoom = 1; panX = panY = 0;
+    applyTransform();
+    applyPreset(initWl, initWw);
   }
 
   // Enable only the viewer controls that do something in the current view.
@@ -767,8 +836,10 @@
     const in3d = window.__canvas3DVisible;
     document.getElementById('btnPrev').disabled = numSlices === 0 || in3d;
     document.getElementById('btnNext').disabled = numSlices === 0 || in3d;
-    document.getElementById('btnReset').disabled = !in3d;
+    document.getElementById('sliceSlider').disabled = numSlices === 0 || in3d;
+    document.getElementById('btnReset').disabled = numSlices === 0 && !in3d;
     document.getElementById('overlays').hidden = in3d || numSlices === 0;
+    document.getElementById('viewerHint').hidden = in3d || numSlices === 0 || hintDismissed;
   }
 
   let isoDebounce = null;

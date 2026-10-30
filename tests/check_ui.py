@@ -92,6 +92,13 @@ def check_image_overlays():
         assert f'id="{oid}"' in HTML, f"missing overlay #{oid}"
 
 
+def check_viewer_controls():
+    for ep in ("/api/dicom/nav", "/api/dicom/window"):
+        assert ep not in HTML, f"{ep}: the slice request carries the whole view now"
+    for vid in ("sliceSlider", "viewerHint"):
+        assert f'id="{vid}"' in HTML, f"missing #{vid}"
+
+
 def run():
     checks = [v for k, v in globals().items() if k.startswith("check_")]
     failed = 0
