@@ -32,6 +32,7 @@ from state import state
 from dicom_io import load_dicom_path
 from render import render_current_slice_png
 from mesh3d import extract_mesh, suggest_iso_defaults, serialize_mesh
+from measure import spacing_xy, roi_stats
 
 __version__ = "0.1.0"  # bump before tagging a release: git tag v<this>
 
@@ -98,6 +99,7 @@ def _load_and_reset(path: str) -> dict:
     state.tumor_point_mm = state.tumor_voxel = None
     state.path_ranked = []
     state.selected_path_idx = None
+    state.measurements = []
     return {
         "meta": meta,
         "num_slices": int(volume.shape[0]),
@@ -219,7 +221,47 @@ def status():
         "meta": state.metadata,
         "active_filter": state.active_filter,
         "filter_strength": state.filter_strength,
+        "spacing": spacing_xy(),
     }
+
+
+# ══════════════════════════════════════════════════════════════
+#  Measurements
+# ══════════════════════════════════════════════════════════════
+
+class RoiRequest(BaseModel):
+    slice: int
+    cx: float = Field(allow_inf_nan=False)
+    cy: float = Field(allow_inf_nan=False)
+    rx: float = Field(gt=0, allow_inf_nan=False)
+    ry: float = Field(gt=0, allow_inf_nan=False)
+
+
+@app.post("/api/measure/roi")
+def measure_roi(body: RoiRequest):
+    if state.raw_volume is None:
+        raise HTTPException(404, "No volume loaded.")
+    if not 0 <= body.slice < state.num_slices:
+        raise HTTPException(400, "Slice index out of range.")
+    try:
+        return roi_stats(body.slice, body.cx, body.cy, body.rx, body.ry)
+    except ValueError as e:
+        raise HTTPException(400, str(e))
+
+
+class MeasurementList(BaseModel):
+    items: list[dict]
+
+
+@app.get("/api/measure/list")
+def get_measurements():
+    return {"items": state.measurements}
+
+
+@app.post("/api/measure/list")
+def set_measurements(body: MeasurementList):
+    state.measurements = body.items
+    return {"count": len(state.measurements)}
 
 
 # ══════════════════════════════════════════════════════════════
@@ -333,6 +375,7 @@ def set_overlay(body: OverlayUpdate):
 
 app.mount("/assets", StaticFiles(directory=STATIC / "assets"), name="assets")
 app.mount("/vendor", StaticFiles(directory=STATIC / "vendor"), name="vendor")
+app.mount("/features", StaticFiles(directory=STATIC / "features"), name="features")
 
 
 @app.get("/")

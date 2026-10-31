@@ -53,16 +53,18 @@ Real test data: `../dataset/MIMIR Dataset/3` (a DICOM series). Synthetic data: `
 
 ### Task 2: Measure
 
-- [ ] Backend `measure.py`: pure functions on `state`:
+> Done: ROI stats server-side (measure.py), ruler/angle client-side from /api/status spacing. Verified by check_measure_roi_known_spacing and a headless Edge run on series 3 (ruler length vs spacing, ROI, 90 degree angle, per-slice display, Esc, delete, W/L untouched while drawing).
+
+- [x] Backend `measure.py`: pure functions on `state`:
       `distance_mm(p1, p2)` (pixel → mm with in-plane spacing from `sitk_image.GetSpacing()`),
       `angle_deg(a, b, c)`, `roi_stats(slice_idx, ellipse)` → mean/std/min/max HU and area mm².
       Endpoint `POST /api/measure/roi`. Distance and angle may be computed client-side if spacing is exposed via
       `/api/status` (add `spacing`). API check: known spacing → known mm.
-- [ ] Frontend `static/features/measure.js`: tools **Ruler**, **Angle**, **Ellipse ROI** drawn on an SVG layer
+- [x] Frontend `static/features/measure.js`: tools **Ruler**, **Angle**, **Ellipse ROI** drawn on an SVG layer
       over `#sliceImg` that follows the same `translate/scale` as the image (image pixel coordinates are the source
       of truth). While a measure tool is active, left-drag draws instead of window/level; Esc returns to W/L.
       Measurements are per slice, listed in the Measure card with delete buttons, shown only on their slice.
-- [ ] Enable the MEASURE tab. Commit.
+- [x] Enable the MEASURE tab. Commit.
 
 ### Task 3: Review (report)
 

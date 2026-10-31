@@ -41,6 +41,9 @@ class WorkstationState:
         self.seg_error: Optional[str] = None
         self.seg_active_labels: list = []   # organ ids present in the last result
 
+        # Measurements drawn by the page, mirrored here for the report
+        self.measurements: list = []
+
         # Registration
         self.reg_ct_arr: Optional[np.ndarray] = None
         self.reg_mri_arr: Optional[np.ndarray] = None

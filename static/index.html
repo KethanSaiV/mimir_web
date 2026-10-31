@@ -275,7 +275,7 @@
     <span class="nav-sep" aria-hidden="true"></span>
     <button type="button" role="tab" aria-selected="false" tabindex="-1" data-i="4" data-planned="Registration"  aria-disabled="true" title="Planned for a later release">REGISTER</button>
     <button type="button" role="tab" aria-selected="false" tabindex="-1" data-i="5" data-planned="Path planning" aria-disabled="true" title="Planned for a later release">PATH PLAN</button>
-    <button type="button" role="tab" aria-selected="false" tabindex="-1" data-i="6" data-planned="Measurement"   aria-disabled="true" title="Planned for a later release">MEASURE</button>
+    <button type="button" role="tab" aria-selected="false" tabindex="-1" data-i="6" id="tabMeasure" data-needs-scan aria-disabled="true">MEASURE</button>
     <button type="button" role="tab" aria-selected="false" tabindex="-1" data-i="7" data-planned="Review"        aria-disabled="true" title="Planned for a later release">REVIEW</button>
   </nav>
 
@@ -355,6 +355,18 @@
         <button class="btn" data-hu onclick="applyIsoPreset('skin')">Skin</button>
       </div>
       <div id="meshInfo" style="margin-top:10px; font-size:var(--fs-xs); color:var(--text-4);"></div>
+    </div>
+
+    <!-- Measure (logic: features/measure.js) -->
+    <div class="card" id="cardMeasure" style="display:none;">
+      <div class="card-title">Measure</div>
+      <div class="preset-row" role="group" aria-label="Measure tool">
+        <button class="btn" data-tool="ruler" aria-pressed="false">Ruler</button>
+        <button class="btn" data-tool="angle" aria-pressed="false">Angle</button>
+        <button class="btn" data-tool="ellipse" aria-pressed="false">ROI</button>
+      </div>
+      <div class="feature-note" id="measureHint">Pick a tool, then draw on the image.</div>
+      <div class="feature-list" id="measureList"></div>
     </div>
   </aside>
 
@@ -486,6 +498,7 @@
     tabFilter:  ['cardFilter'],
     tab3d:      ['card3d'],
     tabSegment: ['cardSegment'],
+    tabMeasure: ['cardMeasure'],
   };
   const ALL_TAB_CARD_IDS = Object.values(TAB_CARDS).flat();
 
@@ -1162,5 +1175,9 @@
     loading.style.display = 'none';
   };
 </script>
+
+<!-- Feature modules: one file each under static/features/ -->
+<link rel="stylesheet" href="/features/features.css">
+<script src="/features/measure.js"></script>
 </body>
 </html>

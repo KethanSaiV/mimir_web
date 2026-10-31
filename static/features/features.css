@@ -1,0 +1,17 @@
+/* Styles for static/features/*.js. Tokens only; colours live in index.html :root. */
+.btn[aria-pressed="true"]{background:var(--teal-solid); border-color:var(--teal-glow); color:var(--text-1);}
+.btn.sm{padding:6px 10px; font-size:var(--fs-xs);}
+.feature-note{font-size:var(--fs-xs); color:var(--text-4); margin-top:10px; line-height:1.5;}
+.feature-list{display:flex; flex-direction:column; gap:6px; margin-top:12px; max-height:260px; overflow-y:auto;}
+.feature-row{display:flex; align-items:center; gap:8px;}
+.feature-row-main{flex:1; min-width:0; background:none; border:none; padding:4px 0; cursor:pointer; text-align:left;
+  color:var(--text-3); font-family:var(--font-ui); font-size:var(--fs-sm); font-weight:600;}
+.feature-row-main:hover{color:var(--text-1);}
+
+/* Measure */
+.canvas.measuring{cursor:crosshair;}
+.measure-layer{position:absolute; inset:0; width:100%; height:100%; pointer-events:none; z-index:1;}
+.measure-layer polyline, .measure-layer ellipse{fill:none; stroke:var(--amber); stroke-width:1.5;}
+.measure-layer circle{fill:var(--amber);}
+.measure-layer text{fill:var(--text-1); font-family:var(--font-ui); font-size:var(--fs-sm); font-weight:700;
+  paint-order:stroke; stroke:var(--bg-0); stroke-width:3px;}

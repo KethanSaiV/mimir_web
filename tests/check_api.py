@@ -110,6 +110,30 @@ def check_cancel_kills_process():
             proc.kill()
 
 
+def _synthetic(vol, spacing=(1.0, 1.0, 1.0)):
+    """Put a volume straight into state, as if a scan had been opened."""
+    import SimpleITK as sitk
+    img = sitk.GetImageFromArray(vol)
+    img.SetSpacing(spacing)
+    state.raw_volume, state.sitk_image = vol.astype(np.float32), img
+    state.current_slice, state.measurements = 0, []
+
+
+def check_measure_roi_known_spacing():
+    vol = np.zeros((1, 100, 100), np.float32)
+    vol[0, :, 50:] = 100  # right half bright
+    _synthetic(vol, (0.5, 0.25, 1.0))
+    assert c.get("/api/status").json()["spacing"] == [0.5, 0.25], "status lacks in-plane spacing"
+    r = c.post("/api/measure/roi", headers=JSON, json={"slice": 0, "cx": 25, "cy": 50, "rx": 10, "ry": 10})
+    s = r.json()
+    assert r.status_code == 200 and s["mean"] == 0 and s["max"] == 0, r.text
+    assert abs(s["area_mm2"] - s["pixels"] * 0.125) < 1e-6 and abs(s["area_mm2"] - np.pi * 100 * 0.125) < 2, s
+    s = c.post("/api/measure/roi", headers=JSON, json={"slice": 0, "cx": 50, "cy": 50, "rx": 10, "ry": 5}).json()
+    assert 40 < s["mean"] < 60 and s["min"] == 0 and s["max"] == 100, s
+    r = c.post("/api/measure/roi", headers=JSON, json={"slice": 0, "cx": -500, "cy": 50, "rx": 3, "ry": 3})
+    assert r.status_code == 400, f"ROI outside image -> {r.status_code}"
+
+
 def run():
     checks = [v for k, v in globals().items() if k.startswith("check_")]
     failed = 0
