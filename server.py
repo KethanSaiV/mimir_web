@@ -15,6 +15,7 @@ from __future__ import annotations
 import logging
 import os
 import socket
+import sys
 import threading
 from logging.handlers import RotatingFileHandler
 from pathlib import Path
@@ -36,6 +37,9 @@ __version__ = "0.1.0"  # bump before tagging a release: git tag v<this>
 
 # Resolves to the bundle dir when frozen by PyInstaller, so cwd doesn't matter.
 STATIC = Path(__file__).parent / "static"
+# Window icon when run from source; a frozen build isn't given installer/ and
+# pywebview then falls back to the exe's own (MIMIR) icon.
+ICON = Path(__file__).parent / "installer" / "mimir.ico"
 
 LOG_FILE = Path(os.environ.get("LOCALAPPDATA") or Path.home()) / "MIMIR" / "mimir.log"
 log = logging.getLogger("mimir")
@@ -356,7 +360,14 @@ if __name__ == "__main__":
 
     window = webview.create_window(f"MIMIR {__version__}", f"http://127.0.0.1:{port}",
                                    width=1600, height=1000, min_size=(1100, 700))
-    webview.start()  # blocks until the window is closed; daemon thread dies with it
+    if sys.platform == "win32":
+        try:
+            import ctypes
+            # Own taskbar group + icon instead of python.exe's.
+            ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID("MIMIR.Workstation")
+        except Exception as e:
+            log.warning("Could not set AppUserModelID: %s", e)
+    webview.start(icon=str(ICON) if ICON.exists() else None)  # blocks until the window is closed; daemon thread dies with it
 
     # Don't leave a TotalSegmentator container/process running after the window closes;
     # the join lets the worker's finally-block delete its temp folder.

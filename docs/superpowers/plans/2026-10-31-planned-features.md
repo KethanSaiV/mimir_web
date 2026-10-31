@@ -40,14 +40,16 @@ Real test data: `../dataset/MIMIR Dataset/3` (a DICOM series). Synthetic data: `
 
 ### Task 1: Window icon (item 1)
 
-- [ ] When run from source the title bar and taskbar show the Python logo. Set the MIMIR icon on the pywebview
+> Done: title bar shows the MIMIR icon (verified by screenshot from source). Taskbar grouping via AppUserModelID set but not visually verified (taskbar not visible in the capture). Frozen builds fall back to the exe icon.
+
+- [x] When run from source the title bar and taskbar show the Python logo. Set the MIMIR icon on the pywebview
       window on Windows (WinForms backend): in `webview.start(func)` or via the window's native form, set
       `Form.Icon = System.Drawing.Icon(<installer/mimir.ico>)` using a bundle-safe path helper that already exists in
       `server.py` (check how static/ is resolved for PyInstaller). Also set the AppUserModelID
       (`ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID('MIMIR.Workstation')`) so the taskbar groups
       under MIMIR, not Python. Guard both with `sys.platform == 'win32'` and try/except + log.
-- [ ] Verify by launching `server.py` and checking the title bar and taskbar (screenshot with PowerShell if needed).
-- [ ] Commit.
+- [x] Verify by launching `server.py` and checking the title bar and taskbar (screenshot with PowerShell if needed).
+- [x] Commit.
 
 ### Task 2: Measure
 
