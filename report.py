@@ -60,7 +60,8 @@ def report_html(s: dict, slice_png: bytes) -> str:
     meas = (_rows((f'Slice {x.get("slice", 0) + 1} · {TYPE_NAMES.get(x.get("type"), x.get("type"))}', x.get("text", ""))
                   for x in s["measurements"]) or "<tr><td>No measurements.</td></tr>")
     p = s["path"]
-    path = (_rows([("Entry (x, y, slice)", p["entry_xyz"]), ("Target (x, y, slice)", p["target_xyz"]),
+    at = lambda v: f"x {v[0]:.0f}, y {v[1]:.0f}, slice {v[2] + 1:.0f}"
+    path = (_rows([("Entry", at(p["entry_xyz"])), ("Target", at(p["target_xyz"])),
                    ("Length", f'{p["length_mm"]} mm'), ("Clearance", f'{p["clearance_mm"]} mm')])
             if p else "<tr><td>No path selected.</td></tr>")
     img = base64.b64encode(slice_png).decode()

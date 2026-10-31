@@ -107,6 +107,7 @@ def _load_and_reset(path: str) -> dict:
     state.tumor_point_mm = state.tumor_voxel = None
     state.path_ranked = []
     state.selected_path_idx = None
+    state.mesh_center = None
     state.measurements = []
     return {
         "meta": meta,
@@ -330,12 +331,13 @@ def get_mesh(iso: float, step: int = 1):
     if state.raw_volume is None:
         raise HTTPException(404, "No volume loaded.")
     try:
-        verts, faces, normals = extract_mesh(
+        verts, faces, normals, center = extract_mesh(
             state.raw_volume, _spacing_zyx(), iso_value=iso, step_size=max(1, step))
     except ValueError as e:
         raise HTTPException(400, str(e))
     if len(faces) == 0:
         raise HTTPException(400, "No surface found at this threshold — try a different value.")
+    state.mesh_center = [float(v) for v in center]  # path planning draws in mesh space
     blob = serialize_mesh(verts, faces, normals)
     return Response(content=blob, media_type="application/octet-stream")
 
@@ -488,6 +490,63 @@ def register_view(body: RegView):
     if body.blend is not None:
         state.reg_blend = body.blend
     return {"view_mode": state.view_mode, "blend": state.reg_blend}
+
+
+# ══════════════════════════════════════════════════════════════
+#  Path planning (needle trajectories)
+# ══════════════════════════════════════════════════════════════
+
+class PathTarget(BaseModel):
+    slice: int
+    x: float = Field(allow_inf_nan=False)
+    y: float = Field(allow_inf_nan=False)
+
+
+def _path_status() -> dict:
+    return {"target": state.tumor_voxel, "paths": state.path_ranked,
+            "selected": state.selected_path_idx, "mesh_center": state.mesh_center}
+
+
+@app.post("/api/path/target")
+def path_target(body: PathTarget):
+    if state.raw_volume is None:
+        raise HTTPException(404, "No volume loaded.")
+    if state.modality.upper() != "CT" or state.raw_volume.shape[0] < 2:
+        raise HTTPException(400, "Path planning needs a 3D CT scan (it uses Hounsfield units).")
+    z, h, w = state.raw_volume.shape
+    if not (0 <= body.slice < z and 0 <= body.x < w and 0 <= body.y < h):
+        raise HTTPException(400, "The target is outside the image.")
+    from pathplan import plan
+    target = [body.slice, int(body.y), int(body.x)]
+    try:
+        paths = plan(target)
+    except ValueError as e:
+        raise HTTPException(400, str(e))
+    state.tumor_voxel, state.path_ranked, state.selected_path_idx = [int(body.x), int(body.y), body.slice], paths, 0
+    return _path_status()
+
+
+class PathSelect(BaseModel):
+    index: int | None = None
+
+
+@app.post("/api/path/select")
+def path_select(body: PathSelect):
+    if body.index is not None and not 0 <= body.index < len(state.path_ranked):
+        raise HTTPException(400, "No such path.")
+    state.selected_path_idx = body.index
+    return _path_status()
+
+
+@app.get("/api/path/status")
+def path_status():
+    return _path_status()
+
+
+@app.post("/api/path/clear")
+def path_clear():
+    state.tumor_voxel, state.path_ranked, state.selected_path_idx = None, [], None
+    return _path_status()
 
 
 # ══════════════════════════════════════════════════════════════

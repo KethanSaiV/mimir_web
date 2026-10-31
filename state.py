@@ -62,6 +62,7 @@ class WorkstationState:
         self.tumor_voxel = None
         self.path_ranked: list = []
         self.selected_path_idx: Optional[int] = None
+        self.mesh_center = None   # xyz mm subtracted from the last 3D mesh
 
     @property
     def has_volume(self) -> bool:

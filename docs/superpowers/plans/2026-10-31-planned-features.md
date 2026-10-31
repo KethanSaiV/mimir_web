@@ -95,17 +95,19 @@ Real test data: `../dataset/MIMIR Dataset/3` (a DICOM series). Synthetic data: `
 
 ### Task 5: Path Plan (needle trajectory)
 
-- [ ] `pathplan.py`: target = a voxel the user clicks on a slice (`POST /api/path/target`). Candidate entry points =
+> Done: rays from the target in 600 directions on a ~2 mm grid (1.3 s first click on series 3, cached after), 5 directionally distinct winners. Not done: the full-resolution refine pass, so entry points are accurate to about one grid step (marked ponytail in pathplan.py). Verified by check_path_avoids_bone_wall and headless Edge on series 3 (pick target, ranked list, 2D projection, report row, 3D line). CT only. Without a segmentation only bone/contrast (HU > 300) counts as critical.
+
+- [x] `pathplan.py`: target = a voxel the user clicks on a slice (`POST /api/path/target`). Candidate entry points =
       skin surface voxels (body mask from HU > −300, largest component, boundary) sampled on a sphere of directions.
       For each straight line entry→target compute: length mm, minimum distance to critical structures
       (segmentation labels if present — vessels, organs not containing the target; otherwise bone from HU > 300),
       and reject paths that cross them or exceed a max length (150 mm default). Score = weighted clearance and length.
       Return top 5 to `state.path_ranked`. Vectorise with numpy; must finish in a few seconds on a 512² × 300 volume
       (downsample for the search, then refine).
-- [ ] UI: Path card lists ranked paths (length, clearance); selecting one draws its projection on the 2D slice
+- [x] UI: Path card lists ranked paths (length, clearance); selecting one draws its projection on the 2D slice
       (entry, target, line) and as a line in the 3D view. Clear button.
-- [ ] API check: synthetic volume with a bone wall on one side → best path avoids it.
-- [ ] Enable PATH PLAN. Commit.
+- [x] API check: synthetic volume with a bone wall on one side → best path avoids it.
+- [x] Enable PATH PLAN. Commit.
 
 ### Task 6: Gesture camera
 

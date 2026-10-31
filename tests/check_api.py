@@ -184,6 +184,27 @@ def check_registration_recovers_shift():
     state.view_mode = 0
 
 
+def check_path_avoids_bone_wall():
+    _, yy, xx = np.mgrid[:40, :80, :80]
+    vol = np.where((yy - 40) ** 2 + (xx - 40) ** 2 < 30 ** 2, 40, -1000).astype(np.float32)  # body cylinder
+    vol[:, 10:70, 22:26] = 1000  # bone wall on the left (low x) side of the target
+    _synthetic(vol, (1.0, 1.0, 2.0))
+    state.modality = "CT"
+    r = c.post("/api/path/target", headers=JSON, json={"slice": 20, "x": 40, "y": 40})
+    assert r.status_code == 200, r.text
+    paths = r.json()["paths"]
+    assert 1 <= len(paths) <= 5 and r.json()["selected"] == 0, paths
+    for p in paths:  # no sampled point of any path lies in the wall
+        (ex, ey, ez), (tx, ty, tz) = p["entry_xyz"], p["target_xyz"]
+        s = np.linspace(0, 1, 200)
+        xs, ys, zs = (np.round(a + (b - a) * s).astype(int) for a, b in ((tx, ex), (ty, ey), (tz, ez)))
+        assert not (vol[np.clip(zs, 0, 39), np.clip(ys, 0, 79), np.clip(xs, 0, 79)] > 300).any(), p
+    assert paths[0]["entry_xyz"][0] > 40 and paths[0]["length_mm"] < 35, paths[0]
+    r = c.post("/api/path/target", headers=JSON, json={"slice": 20, "x": 23, "y": 40})
+    assert r.status_code == 400 and "critical" in r.json()["detail"], r.text
+    c.post("/api/path/clear", headers=JSON)
+
+
 def run():
     checks = [v for k, v in globals().items() if k.startswith("check_")]
     failed = 0

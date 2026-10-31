@@ -274,7 +274,7 @@
     <button type="button" role="tab" aria-selected="false" tabindex="-1" data-i="3" id="tabSegment" data-needs-scan aria-disabled="true">SEGMENT</button>
     <span class="nav-sep" aria-hidden="true"></span>
     <button type="button" role="tab" aria-selected="false" tabindex="-1" data-i="4" id="tabRegister" data-needs-scan aria-disabled="true">REGISTER</button>
-    <button type="button" role="tab" aria-selected="false" tabindex="-1" data-i="5" data-planned="Path planning" aria-disabled="true" title="Planned for a later release">PATH PLAN</button>
+    <button type="button" role="tab" aria-selected="false" tabindex="-1" data-i="5" id="tabPath" data-needs-scan aria-disabled="true">PATH PLAN</button>
     <button type="button" role="tab" aria-selected="false" tabindex="-1" data-i="6" id="tabMeasure" data-needs-scan aria-disabled="true">MEASURE</button>
     <button type="button" role="tab" aria-selected="false" tabindex="-1" data-i="7" id="tabReview" data-needs-scan aria-disabled="true">REVIEW</button>
   </nav>
@@ -375,6 +375,18 @@
         <input type="range" id="regBlendSlider" min="0" max="100" value="50" style="--val:50%">
         <div class="feature-note" id="regMetrics" style="margin-top:0;"></div>
       </div>
+    </div>
+
+    <!-- Path plan (logic: features/path.js) -->
+    <div class="card" id="cardPath" style="display:none;">
+      <div class="card-title">Needle Path</div>
+      <div class="preset-row">
+        <button class="btn" id="btnPathPick" aria-pressed="false">Pick target</button>
+        <button class="btn" id="btnPathClear" disabled>Clear</button>
+      </div>
+      <div class="feature-note" id="pathNote"></div>
+      <div class="feature-list" id="pathList" aria-label="Ranked paths"></div>
+      <div class="feature-note">Geometric sketch for research: straight lines up to 150 mm, scored on clearance and length.</div>
     </div>
 
     <!-- Measure (logic: features/measure.js) -->
@@ -528,6 +540,7 @@
     tabSegment: ['cardSegment'],
     tabMeasure: ['cardMeasure'],
     tabRegister: ['cardRegister'],
+    tabPath:    ['cardPath'],
     tabReview:  ['cardReview'],
   };
   const ALL_TAB_CARD_IDS = Object.values(TAB_CARDS).flat();
@@ -1183,6 +1196,7 @@
       currentMesh.scale.setScalar(0.01);
       material.opacity = 0;
       scene.add(currentMesh);
+      window.dispatchEvent(new CustomEvent('mimir:mesh', { detail: { mesh: currentMesh, THREE } }));
 
       geometry.computeBoundingSphere();
       const radius = geometry.boundingSphere ? geometry.boundingSphere.radius : 150;
@@ -1211,5 +1225,6 @@
 <script src="/features/measure.js"></script>
 <script src="/features/review.js"></script>
 <script src="/features/register.js"></script>
+<script src="/features/path.js"></script>
 </body>
 </html>
