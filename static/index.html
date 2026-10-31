@@ -212,8 +212,8 @@
   .empty-sub{font-size:var(--fs-md); color:var(--text-4); line-height:1.5;}
 
   .viewer-nav{display:flex; gap:12px;}
-  .viewer-nav .btn{flex:1;}
-  .viewer-nav input[type=range]{flex:2; margin:0; align-self:center;}
+  .viewer-nav .btn{flex:none; white-space:nowrap;}
+  .viewer-nav input[type=range]{flex:1; min-width:0; margin:0; align-self:center;}
   .viewer-hint{font-size:var(--fs-xs); color:var(--text-4); text-align:center;}
   #sliceImg{user-select:none;}
   .sr-only{position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0 0 0 0); white-space:nowrap;}
@@ -242,6 +242,8 @@
   .toast.error{border-left-color:var(--red); color:var(--text-1);}
 
   .btn:disabled{opacity:.45; cursor:not-allowed; transform:none; box-shadow:none;}
+  input[type=range]:disabled{opacity:.45; cursor:not-allowed;}
+  input[type=range]:disabled::-webkit-slider-thumb{cursor:not-allowed; box-shadow:none;}
 </style>
 <script type="importmap">
 {
