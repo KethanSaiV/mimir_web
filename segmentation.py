@@ -183,6 +183,16 @@ def _seg_command(tmp_dir: str, nii_in: str, out_dir: str) -> list | None:
     return None
 
 
+def failure_message(code: int, log_lines: list) -> str:
+    """User-facing error for a non-zero exit. 125 is `docker run` itself failing; during a first run
+    that is almost always the ~15 GB image download (disk full or connection dropped)."""
+    if code == 125 and any("Pulling" in l for l in log_lines[-60:]):
+        return ("Downloading the segmentation model (~15 GB) failed. Make sure the drive Docker stores images on "
+                "has enough free space (Docker Desktop > Settings > Resources > Disk image location) and that "
+                "you're online, then run segmentation again.")
+    return f"TotalSegmentator failed (exit code {code}). Details are in the log above."
+
+
 def _log(msg: str):
     state.seg_log.append(msg)
     # Keep the log from growing unbounded across repeated runs.
@@ -255,7 +265,7 @@ def run_segmentation(dicom_path: str, modality: str):
         if _cancelled:
             return
         if proc.returncode != 0:
-            state.seg_error = f"TotalSegmentator failed (exit code {proc.returncode})."
+            state.seg_error = failure_message(proc.returncode, state.seg_log)
             return
 
         _log("Merging masks...")

@@ -744,7 +744,7 @@
     $('ovTR').textContent = `Im ${currentSlice + 1} / ${numSlices}`;
     $('ovBL').textContent = `WL ${wlv.textContent}${hu} · WW ${wwv.textContent}${hu}`;
     $('ovBR').textContent = f.selectedIndex > 0 ? `${f.value} × ${$('filterStrengthV').textContent}` : '';
-    $('sliceReadout').textContent = numSlices ? `${currentSlice + 1} / ${numSlices}` : '— / —';
+    $('sliceReadout').textContent = numSlices === 1 ? 'Single image' : numSlices ? `${currentSlice + 1} / ${numSlices}` : '— / —';
     $('zoomReadout').textContent = Math.round(zoom * 100) + '%';
     ['L', 'R', 'T', 'B'].forEach(k => $('ov' + k).textContent =
       geom ? geom[{L: 'left', R: 'right', T: 'top', B: 'bottom'}[k]] : '');
@@ -770,6 +770,7 @@
     numSlices = data.num_slices;
     currentSlice = data.current_slice;
     geom = data.geometry || null;
+    if (numSlices === 1) toast('Opened a single image. To scroll through slices, use Open series and choose the folder.');
     document.getElementById('m-patient').textContent = data.meta.Patient || '—';
     document.getElementById('m-modality').textContent = data.meta.Modality || '—';
     document.getElementById('m-date').textContent = fmtDate(data.meta['Study Date']);
@@ -984,9 +985,10 @@
   // Enable only the viewer controls that do something in the current view.
   function syncViewerChrome() {
     const in3d = window.__canvas3DVisible;
-    document.getElementById('btnPrev').disabled = numSlices === 0 || in3d;
-    document.getElementById('btnNext').disabled = numSlices === 0 || in3d;
-    document.getElementById('sliceSlider').disabled = numSlices === 0 || in3d;
+    // A single image has nothing to scroll through.
+    document.getElementById('btnPrev').disabled = numSlices < 2 || in3d;
+    document.getElementById('btnNext').disabled = numSlices < 2 || in3d;
+    document.getElementById('sliceSlider').disabled = numSlices < 2 || in3d;
     document.getElementById('btnReset').disabled = numSlices === 0 && !in3d;
     document.getElementById('btnZoomIn').disabled = numSlices === 0 || in3d || zoom >= 8;
     document.getElementById('btnZoomOut').disabled = numSlices === 0 || in3d || zoom <= 1;
@@ -1014,6 +1016,7 @@
   }
   refreshSystem();
   setInterval(refreshSystem, 30000);
+  window.addEventListener('focus', refreshSystem);  // e.g. back from starting Docker Desktop
 
   let isoDebounce = null;
   function onIsoInput() {

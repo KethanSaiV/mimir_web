@@ -118,6 +118,11 @@ def check_clinical_overlays():
     assert "data-hu-unit" in HTML, "window values need HU units on CT"
 
 
+def check_single_image_disables_slice_nav():
+    for bid in ("btnPrev", "btnNext", "sliceSlider"):
+        assert f"getElementById('{bid}').disabled = numSlices < 2" in HTML, f"#{bid} must be off for a single image"
+
+
 def check_status_bar():
     for oid in ("sbEngine", "sbDocker", "sbVersion"):
         assert f'id="{oid}"' in HTML, f"status bar missing #{oid}"

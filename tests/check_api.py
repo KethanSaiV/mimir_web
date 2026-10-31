@@ -70,6 +70,14 @@ def check_geometry():
     assert {g["right"], g["bottom"]} <= set("LRAPSI") and g["right"] not in (g["bottom"], g["top"]), g
 
 
+def check_seg_failure_message():
+    pull_log = ["2.18.0: Pulling from wasserth/totalsegmentator",
+                "docker: short read: expected 11131451128 bytes but got 60767965: unexpected EOF"]
+    msg = segmentation.failure_message(125, pull_log)
+    assert "download" in msg.lower() and "space" in msg.lower(), msg
+    assert "exit code 1" in segmentation.failure_message(1, ["Traceback ..."]), "other failures keep the exit code"
+
+
 def check_system_status():
     r = c.get("/api/system").json()
     assert r["docker"] in ("missing", "stopped", "no-image", "ready"), r
