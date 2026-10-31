@@ -27,6 +27,12 @@ def render_current_slice_png() -> bytes:
     hi = state.wl + state.ww / 2
     img = ((np.clip(raw, lo, hi) - lo) / (hi - lo) * 255).astype(np.uint8)
 
+    mri = state.reg_mri_arr
+    if state.view_mode and mri is not None and mri.shape == state.raw_volume.shape:
+        mlo, mhi = state.reg_window
+        m8 = ((np.clip(mri[state.current_slice], mlo, mhi) - mlo) / (mhi - mlo) * 255).astype(np.uint8)
+        img = m8 if state.view_mode == 1 else cv2.addWeighted(m8, state.reg_blend, img, 1 - state.reg_blend, 0)
+
     _engine.active_filter = state.active_filter
     _engine.strength = state.filter_strength
     img = _engine.apply(img)

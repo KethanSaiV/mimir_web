@@ -7,14 +7,15 @@ on the user's own machine — nothing is uploaded anywhere. The window is
 just the UI; all DICOM/AI work happens in this process.
 
 Implemented: DICOM open, slice rendering (windowing, filters, overlay),
-3D mesh, segmentation. Registration / Path Planning / Gesture camera
-are planned.
+3D mesh, segmentation, measurements, review report, registration,
+needle path planning; the gesture camera runs in the page.
 """
 
 from __future__ import annotations
 import logging
 import os
 import socket
+import sys
 import threading
 from logging.handlers import RotatingFileHandler
 from pathlib import Path
@@ -31,11 +32,16 @@ from state import state
 from dicom_io import load_dicom_path
 from render import render_current_slice_png
 from mesh3d import extract_mesh, suggest_iso_defaults, serialize_mesh
+from measure import spacing_xy, roi_stats
+import report
 
 __version__ = "0.1.0"  # bump before tagging a release: git tag v<this>
 
 # Resolves to the bundle dir when frozen by PyInstaller, so cwd doesn't matter.
 STATIC = Path(__file__).parent / "static"
+# Window icon when run from source; a frozen build isn't given installer/ and
+# pywebview then falls back to the exe's own (MIMIR) icon.
+ICON = Path(__file__).parent / "installer" / "mimir.ico"
 
 LOG_FILE = Path(os.environ.get("LOCALAPPDATA") or Path.home()) / "MIMIR" / "mimir.log"
 log = logging.getLogger("mimir")
@@ -68,6 +74,34 @@ def _ask_path(dialog) -> str | None:
     return paths[0] if paths else None
 
 
+def _ask_save_path(filename: str) -> str | None:
+    paths = window.create_file_dialog(webview.FileDialog.SAVE, save_filename=filename,
+                                      file_types=("HTML report (*.html)",))
+    return paths[0] if paths else None
+
+
+def _allow_camera(origin: str):
+    """WebView2 asks before getUserMedia. Grant the camera to our own page only,
+    deny it to any other origin. Windows/WebView2 only; logged if unavailable."""
+    if sys.platform != "win32":
+        return
+    try:
+        from Microsoft.Web.WebView2.Core import CoreWebView2PermissionKind, CoreWebView2PermissionState
+        from System import Action
+        wv = window.native.webview
+
+        def on_request(_, args):
+            if args.PermissionKind == CoreWebView2PermissionKind.Camera:
+                ours = args.Uri.startswith(origin + "/")
+                args.State = CoreWebView2PermissionState.Allow if ours else CoreWebView2PermissionState.Deny
+
+        def hook():
+            wv.CoreWebView2.PermissionRequested += on_request
+        wv.Invoke(Action(hook))
+    except Exception as e:
+        log.warning("Camera permission handler not installed: %s", e)
+
+
 # ══════════════════════════════════════════════════════════════
 #  DICOM endpoints
 # ══════════════════════════════════════════════════════════════
@@ -89,11 +123,14 @@ def _load_and_reset(path: str) -> dict:
     state.seg_log = []
     state.seg_error = None
     state.seg_active_labels = []
-    state.reg_ct_arr = state.reg_mri_arr = None
+    state.reg_ct_arr = state.reg_mri_arr = state.reg_moving = None
+    state.reg_moving_meta, state.reg_metrics, state.reg_log, state.reg_error = {}, {}, [], None
     state.view_mode = 0
     state.tumor_point_mm = state.tumor_voxel = None
     state.path_ranked = []
     state.selected_path_idx = None
+    state.mesh_center = None
+    state.measurements = []
     return {
         "meta": meta,
         "num_slices": int(volume.shape[0]),
@@ -125,6 +162,8 @@ def _open(dialog) -> dict:
     # A running segmentation would write its result onto the newly opened scan.
     if state.seg_running:
         raise HTTPException(409, "Segmentation is running. Cancel it before opening another scan.")
+    if state.reg_running:
+        raise HTTPException(409, "Registration is running. Cancel it before opening another scan.")
     path = _ask_path(dialog)
     if not path:
         return {"cancelled": True}
@@ -235,6 +274,7 @@ def status():
         "active_filter": state.active_filter,
         "filter_strength": state.filter_strength,
         "geometry": _geometry(),
+        "spacing": spacing_xy(),
     }
 
 
@@ -243,6 +283,77 @@ def system():
     # Slow-ish (shells out to docker); the page calls it on load and every 30 s.
     from segmentation import docker_status
     return {"version": __version__, "docker": docker_status()}
+
+
+# ══════════════════════════════════════════════════════════════
+#  Measurements
+# ══════════════════════════════════════════════════════════════
+
+class RoiRequest(BaseModel):
+    slice: int
+    cx: float = Field(allow_inf_nan=False)
+    cy: float = Field(allow_inf_nan=False)
+    rx: float = Field(gt=0, allow_inf_nan=False)
+    ry: float = Field(gt=0, allow_inf_nan=False)
+
+
+@app.post("/api/measure/roi")
+def measure_roi(body: RoiRequest):
+    if state.raw_volume is None:
+        raise HTTPException(404, "No volume loaded.")
+    if not 0 <= body.slice < state.num_slices:
+        raise HTTPException(400, "Slice index out of range.")
+    try:
+        return roi_stats(body.slice, body.cx, body.cy, body.rx, body.ry)
+    except ValueError as e:
+        raise HTTPException(400, str(e))
+
+
+class MeasurementList(BaseModel):
+    items: list[dict]
+
+
+@app.get("/api/measure/list")
+def get_measurements():
+    return {"items": state.measurements}
+
+
+@app.post("/api/measure/list")
+def set_measurements(body: MeasurementList):
+    state.measurements = body.items
+    return {"count": len(state.measurements)}
+
+
+# ══════════════════════════════════════════════════════════════
+#  Review / report
+# ══════════════════════════════════════════════════════════════
+
+def _report_html() -> str:
+    if state.raw_volume is None:
+        raise HTTPException(404, "No volume loaded.")
+    return report.report_html(report.summary(), render_current_slice_png())
+
+
+@app.get("/api/review/summary")
+def review_summary():
+    if state.raw_volume is None:
+        raise HTTPException(404, "No volume loaded.")
+    return report.summary()
+
+
+@app.get("/api/review/report")
+def review_report():
+    return Response(content=_report_html(), media_type="text/html")
+
+
+@app.post("/api/review/export")
+def review_export():
+    html = _report_html()
+    path = _ask_save_path("mimir-report.html")
+    if not path:
+        return {"cancelled": True}
+    Path(path).write_text(html, encoding="utf-8")
+    return {"path": path}
 
 
 # ══════════════════════════════════════════════════════════════
@@ -269,12 +380,13 @@ def get_mesh(iso: float, step: int = 1):
     if state.raw_volume is None:
         raise HTTPException(404, "No volume loaded.")
     try:
-        verts, faces, normals = extract_mesh(
+        verts, faces, normals, center = extract_mesh(
             state.raw_volume, _spacing_zyx(), iso_value=iso, step_size=max(1, step))
     except ValueError as e:
         raise HTTPException(400, str(e))
     if len(faces) == 0:
         raise HTTPException(400, "No surface found at this threshold — try a different value.")
+    state.mesh_center = [float(v) for v in center]  # path planning draws in mesh space
     blob = serialize_mesh(verts, faces, normals)
     return Response(content=blob, media_type="application/octet-stream")
 
@@ -351,11 +463,148 @@ def set_overlay(body: OverlayUpdate):
 
 
 # ══════════════════════════════════════════════════════════════
+#  Registration (moving series -> loaded scan)
+# ══════════════════════════════════════════════════════════════
+
+_reg_lock = threading.Lock()
+_reg_thread: threading.Thread | None = None
+
+
+@app.post("/api/register/load-moving")
+def register_load_moving():
+    if state.raw_volume is None:
+        raise HTTPException(400, "Open a DICOM file or folder first.")
+    if state.reg_running:
+        raise HTTPException(409, "Registration is running. Cancel it first.")
+    path = _ask_path(webview.FileDialog.FOLDER)
+    if not path:
+        return {"cancelled": True}
+    from registration import load_moving
+    try:
+        return load_moving(path)
+    except Exception as e:
+        log.warning("Could not open moving series %s: %s", path, e)
+        raise HTTPException(400, str(e))
+
+
+@app.post("/api/register/run")
+def register_run():
+    global _reg_thread
+    if state.raw_volume is None or state.raw_volume.shape[0] < 2:
+        raise HTTPException(400, "Registration needs a 3D scan. Open a DICOM folder first.")
+    if state.reg_moving is None:
+        raise HTTPException(400, "Load the moving series first.")
+    from registration import run_registration
+    with _reg_lock:
+        if state.reg_running:
+            raise HTTPException(409, "Registration is already running.")
+        state.reg_running = True  # set before start() so a second request can't slip in
+        _reg_thread = threading.Thread(target=run_registration, daemon=True)
+        _reg_thread.start()
+    return {"started": True}
+
+
+@app.post("/api/register/cancel")
+def register_cancel():
+    from registration import cancel
+    cancel()
+    return {"cancelling": state.reg_running}
+
+
+@app.get("/api/register/status")
+def register_status():
+    return {
+        "running": state.reg_running,
+        "log": state.reg_log,
+        "error": state.reg_error,
+        "done": state.reg_mri_arr is not None,
+        "metrics": state.reg_metrics,
+        "moving": state.reg_moving_meta if state.reg_moving is not None else None,
+        "view_mode": state.view_mode,
+        "blend": state.reg_blend,
+    }
+
+
+class RegView(BaseModel):
+    mode: int | None = Field(None, ge=0, le=2)
+    blend: float | None = Field(None, ge=0, le=1)
+
+
+@app.post("/api/register/view")
+def register_view(body: RegView):
+    if body.mode is not None:
+        if body.mode and state.reg_mri_arr is None:
+            raise HTTPException(400, "Run registration first.")
+        state.view_mode = body.mode
+    if body.blend is not None:
+        state.reg_blend = body.blend
+    return {"view_mode": state.view_mode, "blend": state.reg_blend}
+
+
+# ══════════════════════════════════════════════════════════════
+#  Path planning (needle trajectories)
+# ══════════════════════════════════════════════════════════════
+
+class PathTarget(BaseModel):
+    slice: int
+    x: float = Field(allow_inf_nan=False)
+    y: float = Field(allow_inf_nan=False)
+
+
+def _path_status() -> dict:
+    return {"target": state.tumor_voxel, "paths": state.path_ranked,
+            "selected": state.selected_path_idx, "mesh_center": state.mesh_center}
+
+
+@app.post("/api/path/target")
+def path_target(body: PathTarget):
+    if state.raw_volume is None:
+        raise HTTPException(404, "No volume loaded.")
+    if state.modality.upper() != "CT" or state.raw_volume.shape[0] < 2:
+        raise HTTPException(400, "Path planning needs a 3D CT scan (it uses Hounsfield units).")
+    z, h, w = state.raw_volume.shape
+    if not (0 <= body.slice < z and 0 <= body.x < w and 0 <= body.y < h):
+        raise HTTPException(400, "The target is outside the image.")
+    from pathplan import plan
+    target = [body.slice, int(body.y), int(body.x)]
+    try:
+        paths = plan(target)
+    except ValueError as e:
+        raise HTTPException(400, str(e))
+    state.tumor_voxel, state.path_ranked, state.selected_path_idx = [int(body.x), int(body.y), body.slice], paths, 0
+    return _path_status()
+
+
+class PathSelect(BaseModel):
+    index: int | None = None
+
+
+@app.post("/api/path/select")
+def path_select(body: PathSelect):
+    if body.index is not None and not 0 <= body.index < len(state.path_ranked):
+        raise HTTPException(400, "No such path.")
+    state.selected_path_idx = body.index
+    return _path_status()
+
+
+@app.get("/api/path/status")
+def path_status():
+    return _path_status()
+
+
+@app.post("/api/path/clear")
+def path_clear():
+    state.tumor_voxel, state.path_ranked, state.selected_path_idx = None, [], None
+    return _path_status()
+
+
+# ══════════════════════════════════════════════════════════════
 #  Static frontend
 # ══════════════════════════════════════════════════════════════
 
 app.mount("/assets", StaticFiles(directory=STATIC / "assets"), name="assets")
 app.mount("/vendor", StaticFiles(directory=STATIC / "vendor"), name="vendor")
+app.mount("/features", StaticFiles(directory=STATIC / "features"), name="features")
 
 
 @app.get("/")
@@ -383,7 +632,17 @@ if __name__ == "__main__":
 
     window = webview.create_window(f"MIMIR {__version__}", f"http://127.0.0.1:{port}",
                                    width=1600, height=1000, min_size=(1100, 700))
-    webview.start()  # blocks until the window is closed; daemon thread dies with it
+    if sys.platform == "win32":
+        try:
+            import ctypes
+            # Own taskbar group + icon instead of python.exe's.
+            ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID("MIMIR.Workstation")
+        except Exception as e:
+            log.warning("Could not set AppUserModelID: %s", e)
+    def on_start():
+        window.events.loaded.wait(30)  # CoreWebView2 exists once the page has loaded
+        _allow_camera(f"http://127.0.0.1:{port}")
+    webview.start(on_start, icon=str(ICON) if ICON.exists() else None)  # blocks until the window is closed; daemon thread dies with it
 
     # Don't leave a TotalSegmentator container/process running after the window closes;
     # the join lets the worker's finally-block delete its temp folder.

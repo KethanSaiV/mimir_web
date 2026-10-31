@@ -43,7 +43,8 @@ def extract_mesh(volume: np.ndarray, spacing_zyx: tuple, iso_value: float,
     spacing_zyx: (z_spacing, y_spacing, x_spacing) in mm
     iso_value: surface threshold
     step_size: marching-cubes stride — higher = coarser/faster mesh
-    Returns (vertices Nx3 float32 mm, faces Mx3 uint32, normals Nx3 float32)
+    Returns (vertices Nx3 float32 mm, faces Mx3 uint32, normals Nx3 float32,
+             center xyz mm that was subtracted from the vertices)
     """
     if min(volume.shape) < 2:
         raise ValueError("3D view needs a series with at least 2 slices. Open a DICOM folder.")
@@ -69,7 +70,7 @@ def extract_mesh(volume: np.ndarray, spacing_zyx: tuple, iso_value: float,
     center = verts.mean(axis=0)
     verts -= center
 
-    return verts, faces.astype(np.uint32), normals
+    return verts, faces.astype(np.uint32), normals, center
 
 
 def suggest_iso_defaults(volume: np.ndarray, modality: str) -> dict:

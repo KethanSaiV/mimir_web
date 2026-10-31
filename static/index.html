@@ -226,7 +226,7 @@
     aspect-ratio:4/3; display:flex; align-items:center; justify-content:center; color:var(--text-4); font-size:var(--fs-sm); text-align:center; padding:16px;}
   .cam-status{display:flex; align-items:center; gap:8px; font-size:var(--fs-sm); font-weight:600; color:var(--text-4);}
   .status-dot{width:8px; height:8px; border-radius:50%; background:var(--text-5); flex:none;}
-  /* data-state="active" is for the gesture backend to set once it exists */
+  /* features/gesture.js sets data-state="active" while the camera runs */
   .cam-status[data-state="active"]{color:var(--teal-glow);}
   .cam-status[data-state="active"] .status-dot{background:var(--teal-glow); animation:pulse 1.1s ease-in-out infinite;}
   @keyframes pulse{0%,100%{opacity:1;} 50%{opacity:.3;}}
@@ -292,10 +292,10 @@
     <button type="button" role="tab" aria-selected="false" tabindex="-1" data-i="2" id="tabFilter"  data-needs-scan aria-disabled="true"><wa-icon library="lucide" name="sliders-horizontal"></wa-icon>Filter</button>
     <button type="button" role="tab" aria-selected="false" tabindex="-1" data-i="3" id="tabSegment" data-needs-scan aria-disabled="true"><wa-icon library="lucide" name="brain-circuit"></wa-icon>Segment</button>
     <span class="nav-sep" aria-hidden="true"></span>
-    <button type="button" role="tab" aria-selected="false" tabindex="-1" data-i="4" data-planned="Registration"  aria-disabled="true" title="Planned for a later release"><wa-icon library="lucide" name="git-compare-arrows"></wa-icon>Register</button>
-    <button type="button" role="tab" aria-selected="false" tabindex="-1" data-i="5" data-planned="Path planning" aria-disabled="true" title="Planned for a later release"><wa-icon library="lucide" name="route"></wa-icon>Path plan</button>
-    <button type="button" role="tab" aria-selected="false" tabindex="-1" data-i="6" data-planned="Measurement"   aria-disabled="true" title="Planned for a later release"><wa-icon library="lucide" name="ruler"></wa-icon>Measure</button>
-    <button type="button" role="tab" aria-selected="false" tabindex="-1" data-i="7" data-planned="Review"        aria-disabled="true" title="Planned for a later release"><wa-icon library="lucide" name="clipboard-check"></wa-icon>Review</button>
+    <button type="button" role="tab" aria-selected="false" tabindex="-1" data-i="4" id="tabRegister" data-needs-scan aria-disabled="true"><wa-icon library="lucide" name="git-compare-arrows"></wa-icon>Register</button>
+    <button type="button" role="tab" aria-selected="false" tabindex="-1" data-i="5" id="tabPath" data-needs-scan aria-disabled="true"><wa-icon library="lucide" name="route"></wa-icon>Path plan</button>
+    <button type="button" role="tab" aria-selected="false" tabindex="-1" data-i="6" id="tabMeasure" data-needs-scan aria-disabled="true"><wa-icon library="lucide" name="ruler"></wa-icon>Measure</button>
+    <button type="button" role="tab" aria-selected="false" tabindex="-1" data-i="7" id="tabReview" data-needs-scan aria-disabled="true"><wa-icon library="lucide" name="clipboard-check"></wa-icon>Review</button>
   </nav>
 
   <div class="lock-indicator" id="lockIndicator"><wa-icon library="lucide" name="hand"></wa-icon>Gestures off</div>
@@ -379,6 +379,58 @@
       </div>
       <div id="meshInfo" style="margin-top:10px; font-size:var(--fs-xs); color:var(--text-4);"></div>
     </div>
+
+    <!-- Register (logic: features/register.js) -->
+    <div class="card" id="cardRegister" style="display:none;">
+      <div class="card-title"><wa-icon library="lucide" name="git-compare-arrows"></wa-icon>Registration</div>
+      <button class="btn" id="btnRegLoad" style="width:100%;">Load moving series…</button>
+      <div class="feature-note" id="regMoving"></div>
+      <button class="btn btn-primary" id="btnRegRun" style="width:100%; margin-top:12px;" disabled>Run registration</button>
+      <button class="btn" id="btnRegCancel" style="width:100%; margin-top:8px; display:none;">Cancel registration</button>
+      <div class="feature-note" id="regLog" aria-live="polite"></div>
+      <div id="regResult" style="display:none; margin-top:12px;">
+        <div class="preset-row" role="group" aria-label="Displayed image">
+          <button class="btn" data-regmode="0" aria-pressed="false">CT</button>
+          <button class="btn" data-regmode="1" aria-pressed="false">MRI</button>
+          <button class="btn" data-regmode="2" aria-pressed="false">Blend</button>
+        </div>
+        <div class="stat-row" style="margin-top:12px;"><label class="stat-label" for="regBlendSlider">MRI weight</label><output class="stat-value sm" id="regBlendV" for="regBlendSlider">50%</output></div>
+        <input type="range" id="regBlendSlider" min="0" max="100" value="50" style="--val:50%">
+        <div class="feature-note" id="regMetrics" style="margin-top:0;"></div>
+      </div>
+    </div>
+
+    <!-- Path plan (logic: features/path.js) -->
+    <div class="card" id="cardPath" style="display:none;">
+      <div class="card-title"><wa-icon library="lucide" name="route"></wa-icon>Needle path</div>
+      <div class="preset-row">
+        <button class="btn" id="btnPathPick" aria-pressed="false">Pick target</button>
+        <button class="btn" id="btnPathClear" disabled>Clear</button>
+      </div>
+      <div class="feature-note" id="pathNote"></div>
+      <div class="feature-list" id="pathList" aria-label="Ranked paths"></div>
+      <div class="feature-note">Geometric sketch for research: straight lines up to 150 mm, scored on clearance and length.</div>
+    </div>
+
+    <!-- Measure (logic: features/measure.js) -->
+    <div class="card" id="cardMeasure" style="display:none;">
+      <div class="card-title"><wa-icon library="lucide" name="ruler"></wa-icon>Measure</div>
+      <div class="preset-row" role="group" aria-label="Measure tool">
+        <button class="btn" data-tool="ruler" aria-pressed="false">Ruler</button>
+        <button class="btn" data-tool="angle" aria-pressed="false">Angle</button>
+        <button class="btn" data-tool="ellipse" aria-pressed="false">ROI</button>
+      </div>
+      <div class="feature-note" id="measureHint">Pick a tool, then draw on the image.</div>
+      <div class="feature-list" id="measureList"></div>
+    </div>
+
+    <!-- Review (logic: features/review.js) -->
+    <div class="card" id="cardReview" style="display:none;">
+      <div class="card-title"><wa-icon library="lucide" name="clipboard-check"></wa-icon>Review</div>
+      <div class="feature-note" style="margin-top:0;">Scan details, segmented structure volumes, measurements and the selected needle path, with the current slice. Research prototype, not for diagnostic use.</div>
+      <button class="btn btn-primary" id="btnExportReport" style="width:100%; margin-top:12px;">Export report…</button>
+      <button class="btn" id="btnRefreshReport" style="width:100%; margin-top:8px;">Refresh preview</button>
+    </div>
   </aside>
 
   <main class="viewer">
@@ -402,7 +454,7 @@
       <div class="empty-state" id="emptyState">
         <img src="assets/mimir-emblem.png" class="empty-icon" alt="">
         <div class="empty-head">No scan loaded</div>
-        <div class="empty-sub">Open a DICOM series to view slices, adjust the window, filter, build a 3D surface and run AI segmentation.</div>
+        <div class="empty-sub">Open a DICOM series to view, filter, segment, measure, register and plan needle paths, then export a report.</div>
         <div class="empty-actions">
           <button class="btn btn-primary" onclick="openFolder()"><wa-icon library="lucide" name="folder-open" class="m-tilt"></wa-icon>Open series</button>
           <button class="btn" onclick="openFile()"><wa-icon library="lucide" name="file-plus" class="m-pop"></wa-icon>Open file</button>
@@ -437,12 +489,19 @@
 
   <aside class="sidebar right" aria-label="Gesture control">
     <div class="cam-title"><wa-icon library="lucide" name="hand"></wa-icon>Gesture camera</div>
-    <div class="cam-feed">Gesture control arrives in a later release.</div>
-    <div class="cam-status" id="camStatus" data-state="off"><span class="status-dot"></span>Camera: not connected</div>
-    <div class="gesture-box">
-      <div class="gesture-status">Gestures off</div>
-      <div class="lock-pill">Using mouse and keyboard</div>
+    <!-- Gesture camera (logic: features/gesture.js) -->
+    <div class="cam-feed">
+      <video id="camVideo" playsinline muted hidden></video>
+      <canvas id="camOverlay" hidden></canvas>
+      <span id="camPlaceholder">Camera off. Video stays on this computer.</span>
     </div>
+    <button class="btn btn-primary" id="btnCamera" aria-pressed="false" style="width:100%; margin-top:12px;">Enable camera</button>
+    <div class="cam-status" id="camStatus" data-state="off"><span class="status-dot"></span><span id="camStatusText">Camera: off</span></div>
+    <div class="gesture-box">
+      <div class="gesture-status" id="gestureStatus" aria-live="polite">Gestures off</div>
+      <div class="lock-pill" id="gestureHint">Using mouse and keyboard</div>
+    </div>
+    <div class="feature-note">Hold an open palm 1 s to arm or disarm. Index finger up and move: slices. Pinch and move: pan. Pinch with both hands: zoom. Hold a fist 1 s: lock. Works on the 2D view.</div>
   </aside>
 </div>
 
@@ -536,6 +595,10 @@
     tabFilter:  ['cardFilter'],
     tab3d:      ['card3d'],
     tabSegment: ['cardSegment'],
+    tabMeasure: ['cardMeasure'],
+    tabRegister: ['cardRegister'],
+    tabPath:    ['cardPath'],
+    tabReview:  ['cardReview'],
   };
   const ALL_TAB_CARD_IDS = Object.values(TAB_CARDS).flat();
 
@@ -585,9 +648,7 @@
 
   function selectTab(btn) {
     if (btn.getAttribute('aria-disabled') === 'true') {
-      toast(btn.dataset.planned
-        ? `${btn.dataset.planned} is planned for a later release.`
-        : 'Open a DICOM file or folder first.');
+      toast('Open a DICOM file or folder first.');
       return;
     }
     buttons.forEach(b => {
@@ -1250,6 +1311,7 @@
       currentMesh.scale.setScalar(0.01);
       material.opacity = 0;
       scene.add(currentMesh);
+      window.dispatchEvent(new CustomEvent('mimir:mesh', { detail: { mesh: currentMesh, THREE } }));
 
       geometry.computeBoundingSphere();
       const radius = geometry.boundingSphere ? geometry.boundingSphere.radius : 150;
@@ -1272,5 +1334,13 @@
     loading.style.display = 'none';
   };
 </script>
+
+<!-- Feature modules: one file each under static/features/ -->
+<link rel="stylesheet" href="/features/features.css">
+<script src="/features/measure.js"></script>
+<script src="/features/review.js"></script>
+<script src="/features/register.js"></script>
+<script src="/features/path.js"></script>
+<script type="module" src="/features/gesture.js"></script>
 </body>
 </html>
