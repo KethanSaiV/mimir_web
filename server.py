@@ -101,7 +101,8 @@ def _load_and_reset(path: str) -> dict:
     state.seg_log = []
     state.seg_error = None
     state.seg_active_labels = []
-    state.reg_ct_arr = state.reg_mri_arr = None
+    state.reg_ct_arr = state.reg_mri_arr = state.reg_moving = None
+    state.reg_moving_meta, state.reg_metrics, state.reg_log, state.reg_error = {}, {}, [], None
     state.view_mode = 0
     state.tumor_point_mm = state.tumor_voxel = None
     state.path_ranked = []
@@ -119,6 +120,8 @@ def _open(dialog) -> dict:
     # A running segmentation would write its result onto the newly opened scan.
     if state.seg_running:
         raise HTTPException(409, "Segmentation is running. Cancel it before opening another scan.")
+    if state.reg_running:
+        raise HTTPException(409, "Registration is running. Cancel it before opening another scan.")
     path = _ask_path(dialog)
     if not path:
         return {"cancelled": True}
@@ -406,6 +409,85 @@ def set_overlay(body: OverlayUpdate):
     if body.opacity is not None:
         state.opacity = max(0.0, min(1.0, body.opacity))
     return {"show_overlay": state.show_overlay, "opacity": state.opacity}
+
+
+# ══════════════════════════════════════════════════════════════
+#  Registration (moving series -> loaded scan)
+# ══════════════════════════════════════════════════════════════
+
+_reg_lock = threading.Lock()
+_reg_thread: threading.Thread | None = None
+
+
+@app.post("/api/register/load-moving")
+def register_load_moving():
+    if state.raw_volume is None:
+        raise HTTPException(400, "Open a DICOM file or folder first.")
+    if state.reg_running:
+        raise HTTPException(409, "Registration is running. Cancel it first.")
+    path = _ask_path(webview.FileDialog.FOLDER)
+    if not path:
+        return {"cancelled": True}
+    from registration import load_moving
+    try:
+        return load_moving(path)
+    except Exception as e:
+        log.warning("Could not open moving series %s: %s", path, e)
+        raise HTTPException(400, str(e))
+
+
+@app.post("/api/register/run")
+def register_run():
+    global _reg_thread
+    if state.raw_volume is None or state.raw_volume.shape[0] < 2:
+        raise HTTPException(400, "Registration needs a 3D scan. Open a DICOM folder first.")
+    if state.reg_moving is None:
+        raise HTTPException(400, "Load the moving series first.")
+    from registration import run_registration
+    with _reg_lock:
+        if state.reg_running:
+            raise HTTPException(409, "Registration is already running.")
+        state.reg_running = True  # set before start() so a second request can't slip in
+        _reg_thread = threading.Thread(target=run_registration, daemon=True)
+        _reg_thread.start()
+    return {"started": True}
+
+
+@app.post("/api/register/cancel")
+def register_cancel():
+    from registration import cancel
+    cancel()
+    return {"cancelling": state.reg_running}
+
+
+@app.get("/api/register/status")
+def register_status():
+    return {
+        "running": state.reg_running,
+        "log": state.reg_log,
+        "error": state.reg_error,
+        "done": state.reg_mri_arr is not None,
+        "metrics": state.reg_metrics,
+        "moving": state.reg_moving_meta if state.reg_moving is not None else None,
+        "view_mode": state.view_mode,
+        "blend": state.reg_blend,
+    }
+
+
+class RegView(BaseModel):
+    mode: int | None = Field(None, ge=0, le=2)
+    blend: float | None = Field(None, ge=0, le=1)
+
+
+@app.post("/api/register/view")
+def register_view(body: RegView):
+    if body.mode is not None:
+        if body.mode and state.reg_mri_arr is None:
+            raise HTTPException(400, "Run registration first.")
+        state.view_mode = body.mode
+    if body.blend is not None:
+        state.reg_blend = body.blend
+    return {"view_mode": state.view_mode, "blend": state.reg_blend}
 
 
 # ══════════════════════════════════════════════════════════════

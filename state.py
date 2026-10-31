@@ -49,6 +49,13 @@ class WorkstationState:
         self.reg_mri_arr: Optional[np.ndarray] = None
         self.reg_metrics: dict = {}
         self.view_mode: int = 0   # 0=CT, 1=MRI Registered, 2=Overlay
+        self.reg_moving = None                 # moving series (sitk image), before registration
+        self.reg_moving_meta: dict = {}
+        self.reg_window = (0.0, 1.0)           # display range of reg_mri_arr (percentiles)
+        self.reg_blend: float = 0.5            # MRI weight in view_mode 2
+        self.reg_running: bool = False
+        self.reg_log: list = []
+        self.reg_error: Optional[str] = None
 
         # Path planning
         self.tumor_point_mm = None

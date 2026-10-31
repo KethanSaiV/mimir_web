@@ -157,6 +157,33 @@ def check_review_summary_and_report():
     assert r.json()["path"] == str(saved) and "Liver" in written and "0.1 mL" in written, r.text
 
 
+def check_registration_recovers_shift():
+    import SimpleITK as sitk
+    from scipy.ndimage import center_of_mass
+    import registration
+    zz, yy, xx = np.mgrid[:40, :64, :64]
+    def blobs(shift):  # three gaussian blobs, so rotation is constrained too
+        dz, dy, dx = shift
+        return sum(np.exp(-((zz - cz - dz) ** 2 + (yy - cy - dy) ** 2 + (xx - cx - dx) ** 2) / (2 * r * r))
+                   for cz, cy, cx, r in ((20, 30, 30, 6), (14, 18, 44, 4), (26, 44, 20, 5))).astype(np.float32)
+    fixed = blobs((0, 0, 0)) * 1000
+    _synthetic(fixed, (1.0, 1.0, 1.0))
+    moving = sitk.GetImageFromArray(50 + blobs((2, -3, 4)) * 300)  # shifted, different intensities
+    state.reg_moving, state.reg_moving_meta = moving, {"Modality": "MR"}
+    registration.run_registration()
+    assert state.reg_error is None, state.reg_error
+    reg = state.reg_mri_arr
+    got = np.array(center_of_mass(np.clip(reg - 50, 0, None)))  # 50 = moving background
+    want = np.array(center_of_mass(fixed))
+    assert np.abs(got - want).max() < 1.0, f"registered blobs at {got}, expected {want}"
+    state.view_mode = 2
+    assert c.get("/api/dicom/slice?i=20").status_code == 200, "blend view does not render"
+    r = c.post("/api/register/view", headers=JSON, json={"mode": 3})
+    assert r.status_code == 422, f"view mode 3 accepted ({r.status_code})"
+    state.reg_mri_arr = state.reg_moving = None
+    state.view_mode = 0
+
+
 def run():
     checks = [v for k, v in globals().items() if k.startswith("check_")]
     failed = 0

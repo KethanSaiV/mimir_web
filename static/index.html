@@ -273,7 +273,7 @@
     <button type="button" role="tab" aria-selected="false" tabindex="-1" data-i="2" id="tabFilter"  data-needs-scan aria-disabled="true">FILTER</button>
     <button type="button" role="tab" aria-selected="false" tabindex="-1" data-i="3" id="tabSegment" data-needs-scan aria-disabled="true">SEGMENT</button>
     <span class="nav-sep" aria-hidden="true"></span>
-    <button type="button" role="tab" aria-selected="false" tabindex="-1" data-i="4" data-planned="Registration"  aria-disabled="true" title="Planned for a later release">REGISTER</button>
+    <button type="button" role="tab" aria-selected="false" tabindex="-1" data-i="4" id="tabRegister" data-needs-scan aria-disabled="true">REGISTER</button>
     <button type="button" role="tab" aria-selected="false" tabindex="-1" data-i="5" data-planned="Path planning" aria-disabled="true" title="Planned for a later release">PATH PLAN</button>
     <button type="button" role="tab" aria-selected="false" tabindex="-1" data-i="6" id="tabMeasure" data-needs-scan aria-disabled="true">MEASURE</button>
     <button type="button" role="tab" aria-selected="false" tabindex="-1" data-i="7" id="tabReview" data-needs-scan aria-disabled="true">REVIEW</button>
@@ -355,6 +355,26 @@
         <button class="btn" data-hu onclick="applyIsoPreset('skin')">Skin</button>
       </div>
       <div id="meshInfo" style="margin-top:10px; font-size:var(--fs-xs); color:var(--text-4);"></div>
+    </div>
+
+    <!-- Register (logic: features/register.js) -->
+    <div class="card" id="cardRegister" style="display:none;">
+      <div class="card-title">Registration</div>
+      <button class="btn" id="btnRegLoad" style="width:100%;">Load moving series…</button>
+      <div class="feature-note" id="regMoving"></div>
+      <button class="btn btn-primary" id="btnRegRun" style="width:100%; margin-top:12px;" disabled>Run registration</button>
+      <button class="btn" id="btnRegCancel" style="width:100%; margin-top:8px; display:none;">Cancel registration</button>
+      <div class="feature-note" id="regLog" aria-live="polite"></div>
+      <div id="regResult" style="display:none; margin-top:12px;">
+        <div class="preset-row" role="group" aria-label="Displayed image">
+          <button class="btn" data-regmode="0" aria-pressed="false">CT</button>
+          <button class="btn" data-regmode="1" aria-pressed="false">MRI</button>
+          <button class="btn" data-regmode="2" aria-pressed="false">Blend</button>
+        </div>
+        <div class="stat-row" style="margin-top:12px;"><label class="stat-label" for="regBlendSlider">MRI weight</label><output class="stat-value sm" id="regBlendV" for="regBlendSlider">50%</output></div>
+        <input type="range" id="regBlendSlider" min="0" max="100" value="50" style="--val:50%">
+        <div class="feature-note" id="regMetrics" style="margin-top:0;"></div>
+      </div>
     </div>
 
     <!-- Measure (logic: features/measure.js) -->
@@ -507,6 +527,7 @@
     tab3d:      ['card3d'],
     tabSegment: ['cardSegment'],
     tabMeasure: ['cardMeasure'],
+    tabRegister: ['cardRegister'],
     tabReview:  ['cardReview'],
   };
   const ALL_TAB_CARD_IDS = Object.values(TAB_CARDS).flat();
@@ -1189,5 +1210,6 @@
 <link rel="stylesheet" href="/features/features.css">
 <script src="/features/measure.js"></script>
 <script src="/features/review.js"></script>
+<script src="/features/register.js"></script>
 </body>
 </html>

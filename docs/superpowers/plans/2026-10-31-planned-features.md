@@ -80,16 +80,18 @@ Real test data: `../dataset/MIMIR Dataset/3` (a DICOM series). Synthetic data: `
 
 ### Task 4: Register (CT ↔ MRI)
 
-- [ ] `registration.py`: load a second series via the existing loader (`dicom_io.load_dicom_path`) into
+> Done: rigid then affine Mattes MI on volumes shrunk to ~128 voxels per axis, result resampled onto the full CT grid. Verified by check_registration_recovers_shift (synthetic shift recovered to <0.1 voxel), a real-data run (series 3 moved 8/-5/6 mm with remapped intensities: recovered to within 0.5 mm in ~6 s) and headless Edge (load, run, progress, CT/MRI/blend). No real MRI series was available, so true CT-MRI registration is untested. The image corner overlay still says CT in MRI/blend view.
+
+- [x] `registration.py`: load a second series via the existing loader (`dicom_io.load_dicom_path`) into
       `state.reg_mri_arr`; rigid then affine registration with SimpleITK (Mattes mutual information, multi-resolution,
       `CenteredTransformInitializer` GEOMETRY), resample the moving image onto the fixed CT grid; store metrics in
       `state.reg_metrics` (final metric value, iterations, elapsed). Run in a background thread with status polling
       like segmentation (`/api/register/run|status|cancel`); reuse that pattern, including the 409 guards.
-- [ ] Rendering: `state.view_mode` 0 = CT, 1 = registered MRI, 2 = blend (opacity slider). Extend
+- [x] Rendering: `state.view_mode` 0 = CT, 1 = registered MRI, 2 = blend (opacity slider). Extend
       `render_current_slice_png` (MRI windowed by its own percentiles).
-- [ ] Register card: "Load moving series…", Run/Cancel, progress, metrics, view-mode segmented control, blend slider.
+- [x] Register card: "Load moving series…", Run/Cancel, progress, metrics, view-mode segmented control, blend slider.
       API check with a synthetic shifted volume: registration recovers a known translation within 1 voxel.
-- [ ] Enable REGISTER. Commit.
+- [x] Enable REGISTER. Commit.
 
 ### Task 5: Path Plan (needle trajectory)
 
