@@ -111,18 +111,20 @@ Real test data: `../dataset/MIMIR Dataset/3` (a DICOM series). Synthetic data: `
 
 ### Task 6: Gesture camera
 
-- [ ] Use **MediaPipe Tasks Vision (JS) HandLandmarker** in the page, vendored under `static/vendor/mediapipe/`
+> Done: MediaPipe HandLandmarker 0.10.14 vendored (SIMD wasm + float16 model, ~17 MB). Camera permission: CoreWebView2.PermissionRequested allows the camera for our 127.0.0.1 origin and denies it elsewhere. Verified: headless Edge with a fake camera (model loads, frames processed, enable/disable stops the stream); synthetic landmark sequences drive classify/act (arm, scroll, pan, zoom, lock); native pywebview window with WebView2's fake camera device reached 'Camera: on' with no prompt. NOT verified: real hand gestures in front of the physical webcam - needs a person; thresholds (pinch 0.3 of hand size, 1 s holds, 0.03 per slice) may need tuning.
+
+- [x] Use **MediaPipe Tasks Vision (JS) HandLandmarker** in the page, vendored under `static/vendor/mediapipe/`
       (wasm + `hand_landmarker.task` model), pinned version, offline. No Python dependency.
-- [ ] Camera access in WebView2: getUserMedia needs a permission. Grant it for our localhost origin only
+- [x] Camera access in WebView2: getUserMedia needs a permission. Grant it for our localhost origin only
       (pywebview WebView2 permission handling, or `CoreWebView2.PermissionRequested` → Allow for camera when origin
       is `http://127.0.0.1:<port>`). Never enable for other origins.
-- [ ] Gestures (MVP, all reversible): **open palm held** = arm/disarm; **index finger up + move vertically** =
+- [x] Gestures (MVP, all reversible): **open palm held** = arm/disarm; **index finger up + move vertically** =
       scroll slices; **pinch + move** = pan; **two-hand pinch spread** = zoom; **fist** = lock (ignore input).
       Drive the existing functions (`navSlice`, the zoom/pan state + `applyTransform`, `resetView`), never new paths.
       Debounce/smooth with an exponential filter; show the live camera feed with landmark overlay in the camera panel,
       status dot (`data-state="active"`), and the recognised gesture name.
-- [ ] Camera off by default; a clear "Enable camera" button; stop the stream when disabled or the window hides.
-- [ ] Verify manually with the real camera. Commit.
+- [x] Camera off by default; a clear "Enable camera" button; stop the stream when disabled or the window hides.
+- [x] Verify manually with the real camera. Commit.
 
 ### Task 7: Honest copy (item 3) and wrap-up
 

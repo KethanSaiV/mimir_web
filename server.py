@@ -80,6 +80,28 @@ def _ask_save_path(filename: str) -> str | None:
     return paths[0] if paths else None
 
 
+def _allow_camera(origin: str):
+    """WebView2 asks before getUserMedia. Grant the camera to our own page only,
+    deny it to any other origin. Windows/WebView2 only; logged if unavailable."""
+    if sys.platform != "win32":
+        return
+    try:
+        from Microsoft.Web.WebView2.Core import CoreWebView2PermissionKind, CoreWebView2PermissionState
+        from System import Action
+        wv = window.native.webview
+
+        def on_request(_, args):
+            if args.PermissionKind == CoreWebView2PermissionKind.Camera:
+                ours = args.Uri.startswith(origin + "/")
+                args.State = CoreWebView2PermissionState.Allow if ours else CoreWebView2PermissionState.Deny
+
+        def hook():
+            wv.CoreWebView2.PermissionRequested += on_request
+        wv.Invoke(Action(hook))
+    except Exception as e:
+        log.warning("Camera permission handler not installed: %s", e)
+
+
 # ══════════════════════════════════════════════════════════════
 #  DICOM endpoints
 # ══════════════════════════════════════════════════════════════
@@ -590,7 +612,10 @@ if __name__ == "__main__":
             ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID("MIMIR.Workstation")
         except Exception as e:
             log.warning("Could not set AppUserModelID: %s", e)
-    webview.start(icon=str(ICON) if ICON.exists() else None)  # blocks until the window is closed; daemon thread dies with it
+    def on_start():
+        window.events.loaded.wait(30)  # CoreWebView2 exists once the page has loaded
+        _allow_camera(f"http://127.0.0.1:{port}")
+    webview.start(on_start, icon=str(ICON) if ICON.exists() else None)  # blocks until the window is closed; daemon thread dies with it
 
     # Don't leave a TotalSegmentator container/process running after the window closes;
     # the join lets the worker's finally-block delete its temp folder.

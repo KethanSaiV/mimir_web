@@ -14,6 +14,10 @@
 .path-layer .here{fill:var(--teal-glow);}
 .feature-row-main[aria-pressed="true"]{color:var(--text-1);}
 
+/* Gesture camera: video and landmarks mirrored, like a mirror */
+.cam-feed{position:relative; overflow:hidden; text-align:center; padding:0 12px;}
+.cam-feed video, .cam-feed canvas{position:absolute; inset:0; width:100%; height:100%; object-fit:cover; transform:scaleX(-1);}
+
 /* Review */
 .review-panel{position:absolute; inset:0; width:100%; height:100%; border:0; z-index:3; background:var(--bg-1);}
 

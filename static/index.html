@@ -440,12 +440,19 @@
 
   <aside class="sidebar right" aria-label="Gesture control">
     <div class="cam-title">Gesture camera</div>
-    <div class="cam-feed">Gesture control arrives in a later release.</div>
-    <div class="cam-status" id="camStatus" data-state="off"><span class="status-dot"></span>Camera: not connected</div>
-    <div class="gesture-box">
-      <div class="gesture-status">Gestures off</div>
-      <div class="lock-pill">Using mouse and keyboard</div>
+    <!-- Gesture camera (logic: features/gesture.js) -->
+    <div class="cam-feed">
+      <video id="camVideo" playsinline muted hidden></video>
+      <canvas id="camOverlay" hidden></canvas>
+      <span id="camPlaceholder">Camera off. Video stays on this computer.</span>
     </div>
+    <button class="btn btn-primary" id="btnCamera" aria-pressed="false" style="width:100%; margin-top:12px;">Enable camera</button>
+    <div class="cam-status" id="camStatus" data-state="off"><span class="status-dot"></span><span id="camStatusText">Camera: off</span></div>
+    <div class="gesture-box">
+      <div class="gesture-status" id="gestureStatus" aria-live="polite">Gestures off</div>
+      <div class="lock-pill" id="gestureHint">Using mouse and keyboard</div>
+    </div>
+    <div class="feature-note">Hold an open palm 1 s to arm or disarm. Index finger up and move: slices. Pinch and move: pan. Pinch with both hands: zoom. Hold a fist 1 s: lock. Works on the 2D view.</div>
   </aside>
 </div>
 
@@ -1226,5 +1233,6 @@
 <script src="/features/review.js"></script>
 <script src="/features/register.js"></script>
 <script src="/features/path.js"></script>
+<script type="module" src="/features/gesture.js"></script>
 </body>
 </html>
