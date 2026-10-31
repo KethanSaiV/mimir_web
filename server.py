@@ -99,7 +99,26 @@ def _load_and_reset(path: str) -> dict:
         "num_slices": int(volume.shape[0]),
         "current_slice": int(state.current_slice),
         "wl": state.wl, "ww": state.ww,
+        "geometry": _geometry(),
     }
+
+
+def _geometry() -> dict | None:
+    """Voxel spacing (x, y, z mm) and the patient direction at each screen edge.
+    SimpleITK directions are LPS; the slice is shown unflipped (radiological view)."""
+    img = state.sitk_image
+    if img is None:
+        return None
+    d = img.GetDirection()
+
+    def label(v):
+        i = max(range(3), key=lambda k: abs(v[k]))
+        return "LPS"[i] if v[i] > 0 else "RAI"[i]
+
+    col, row = (d[0], d[3], d[6]), (d[1], d[4], d[7])  # +x and +y image axes
+    return {"spacing": list(img.GetSpacing()),
+            "right": label(col), "left": label([-v for v in col]),
+            "bottom": label(row), "top": label([-v for v in row])}
 
 
 def _open(dialog) -> dict:
@@ -215,7 +234,15 @@ def status():
         "meta": state.metadata,
         "active_filter": state.active_filter,
         "filter_strength": state.filter_strength,
+        "geometry": _geometry(),
     }
+
+
+@app.get("/api/system")
+def system():
+    # Slow-ish (shells out to docker); the page calls it on load and every 30 s.
+    from segmentation import docker_status
+    return {"version": __version__, "docker": docker_status()}
 
 
 # ══════════════════════════════════════════════════════════════

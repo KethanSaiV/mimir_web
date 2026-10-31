@@ -146,17 +146,28 @@ def cancel():
         _proc.kill()
 
 
+def docker_status() -> str:
+    """'missing' (no docker CLI), 'stopped' (daemon down), 'no-image' (ready, image not pulled yet) or 'ready'."""
+    if not shutil.which("docker"):
+        return "missing"
+    if subprocess.run(["docker", "info"], capture_output=True, creationflags=_NO_WINDOW).returncode != 0:
+        return "stopped"
+    if subprocess.run(["docker", "image", "inspect", DOCKER_IMAGE], capture_output=True,
+                      creationflags=_NO_WINDOW).returncode != 0:
+        return "no-image"
+    return "ready"
+
+
 def _seg_command(tmp_dir: str, nii_in: str, out_dir: str) -> list | None:
     """TotalSegmentator command line up to (not incl.) task/device flags.
     Docker first; local Python install only when running from source.
     Sets state.seg_error and returns None if neither is usable."""
-    if shutil.which("docker"):
-        if subprocess.run(["docker", "info"], capture_output=True,
-                          creationflags=_NO_WINDOW).returncode != 0:
+    docker = docker_status()
+    if docker != "missing":
+        if docker == "stopped":
             state.seg_error = "Docker is installed but not running. Start Docker Desktop and try again."
             return None
-        if subprocess.run(["docker", "image", "inspect", DOCKER_IMAGE], capture_output=True,
-                          creationflags=_NO_WINDOW).returncode != 0:
+        if docker == "no-image":
             _log("Downloading segmentation image (~15 GB, first time only)...")
         global _container
         _container = f"mimir-seg-{uuid.uuid4().hex[:8]}"

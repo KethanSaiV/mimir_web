@@ -61,6 +61,20 @@ def check_slice_params():
         assert r.status_code == 422, f"{q} accepted ({r.status_code})"
 
 
+def check_geometry():
+    _open_ct_small()
+    g = c.get("/api/status").json()["geometry"]
+    opposite = dict(zip("LRAPSI", "RLPAIS"))
+    assert g["spacing"][0] > 0 and g["spacing"][:2] != [1.0, 1.0], g
+    assert opposite[g["right"]] == g["left"] and opposite[g["bottom"]] == g["top"], g
+    assert {g["right"], g["bottom"]} <= set("LRAPSI") and g["right"] not in (g["bottom"], g["top"]), g
+
+
+def check_system_status():
+    r = c.get("/api/system").json()
+    assert r["docker"] in ("missing", "stopped", "no-image", "ready"), r
+
+
 def check_mismatched_mask_does_not_crash():
     _open_ct_small()
     state.seg_mask = np.ones((1, 10, 10), np.int32)

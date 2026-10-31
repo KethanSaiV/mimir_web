@@ -1,249 +1,268 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="wa-dark">
 <head>
 <meta charset="UTF-8">
-<title>MIMIR — Preview</title>
+<title>MIMIR</title>
+<link rel="stylesheet" href="/vendor/webawesome/styles/themes/default.css">
+<link rel="stylesheet" href="/vendor/webawesome/styles/color/variants.css">
+<script type="module" src="/vendor/webawesome/webawesome.loader.js" data-webawesome="/vendor/webawesome"></script>
+<script type="module">
+  import { registerIconLibrary } from '/vendor/webawesome/webawesome.loader.js';
+  registerIconLibrary('lucide', { resolver: name => `/vendor/lucide/${name}.svg` });
+</script>
 <style>
-  @font-face{
-    font-family:'Rajdhani'; font-weight:300; font-style:normal;
-    src:url('/vendor/fonts/rajdhani-latin-300-normal.woff2') format('woff2');
-    font-display:swap;
-  }
-  @font-face{
-    font-family:'Rajdhani'; font-weight:400; font-style:normal;
-    src:url('/vendor/fonts/rajdhani-latin-400-normal.woff2') format('woff2');
-    font-display:swap;
-  }
-  @font-face{
-    font-family:'Rajdhani'; font-weight:500; font-style:normal;
-    src:url('/vendor/fonts/rajdhani-latin-500-normal.woff2') format('woff2');
-    font-display:swap;
-  }
-  @font-face{
-    font-family:'Rajdhani'; font-weight:600; font-style:normal;
-    src:url('/vendor/fonts/rajdhani-latin-600-normal.woff2') format('woff2');
-    font-display:swap;
-  }
-  @font-face{
-    font-family:'Rajdhani'; font-weight:700; font-style:normal;
-    src:url('/vendor/fonts/rajdhani-latin-700-normal.woff2') format('woff2');
-    font-display:swap;
-  }
-  @font-face{
-    font-family:'Syncopate'; font-weight:400; font-style:normal;
-    src:url('/vendor/fonts/syncopate-latin-400-normal.woff2') format('woff2');
-    font-display:swap;
-  }
   @font-face{
     font-family:'Syncopate'; font-weight:700; font-style:normal;
     src:url('/vendor/fonts/syncopate-latin-700-normal.woff2') format('woff2');
     font-display:swap;
   }
   :root{
-    /* brand */
-    --teal-deep:#0a2b24; --teal-solid:#0f6e54; --teal-core:#117e60; --teal-mid:#1c9c78; --teal-glow:#74bda8;
-    --cream:#f0ede4;
-    /* surfaces */
-    --bg-0:#000000; --bg-1:#060907; --bg-2:#0d100e; --bg-3:#141915;
-    --line-1:#1a201c; --line-2:#232b25; --line-3:#2d372f;
+    /* brand accent: used for active, primary and focus only */
+    --teal-deep:#0b2e26; --teal-solid:#0f6e54; --teal-core:#13916f; --teal-mid:#1fa37f; --teal-glow:#5cc6a7;
+    --cream:#eef1f3;
+    /* graphite surfaces; bg-0 is the image well */
+    --bg-0:#000000; --bg-1:#0d1012; --bg-2:#13171a; --bg-3:#1a1f23;
+    --line-1:#1f2529; --line-2:#272e33; --line-3:#343c42;
     /* text-1..4 are readable text (>=4.5:1 on every bg). text-5 is disabled text and borders only (>=3:1). */
-    --text-1:#f0ede4; --text-2:#cdd6d0; --text-3:#94a49b; --text-4:#8a978f; --text-5:#626e67;
-    --amber:#d9a441; --red:#dd6b63;
+    --text-1:#eef1f3; --text-2:#c8d0d5; --text-3:#9ba6ad; --text-4:#8e999f; --text-5:#66727a;
+    /* semantic */
+    --amber:#e2b04a; --red:#e8746d; --ok:var(--teal-glow);
+    --annot:#f1d58c;   /* image annotations, PACS convention */
     --focus:var(--teal-glow);
     /* type */
-    --font-display:'Syncopate',sans-serif; --font-ui:'Rajdhani',sans-serif;
-    --fs-xs:12px; --fs-sm:13px; --fs-md:15px; --fs-lg:18px; --fs-xl:26px;
+    --font-display:'Syncopate',sans-serif;
+    --font-ui:'Segoe UI Variable Text','Segoe UI',system-ui,sans-serif;
+    --font-mono:'Cascadia Mono',Consolas,ui-monospace,monospace;
+    --fs-xs:12px; --fs-sm:13px; --fs-md:14px; --fs-lg:17px; --fs-xl:24px;
     /* shape + motion */
-    --radius-lg:14px; --radius-md:10px; --radius-sm:7px;
-    --dur:.18s; --ease:cubic-bezier(.4,0,.2,1);
+    --radius-lg:10px; --radius-md:8px; --radius-sm:6px;
+    --dur:.16s; --ease:cubic-bezier(.2,0,0,1);
+    --shadow-1:0 1px 0 rgba(255,255,255,.03) inset, 0 1px 2px rgba(0,0,0,.4);
+    --shadow-2:0 1px 0 rgba(255,255,255,.04) inset, 0 8px 24px rgba(0,0,0,.45);
+    /* Web Awesome theme hooks */
+    --wa-font-family-body:var(--font-ui); --wa-font-family-heading:var(--font-ui);
+    --wa-color-brand-fill-loud:var(--teal-solid); --wa-color-focus:var(--focus);
+    --wa-tooltip-background-color:var(--bg-3); --wa-tooltip-content-color:var(--text-1);
+    --wa-tooltip-border-color:var(--line-3); --wa-tooltip-border-width:1px; --wa-tooltip-font-size:var(--fs-xs);
   }
   *{box-sizing:border-box;}
   body{
-    margin:0; background:var(--bg-0);
+    margin:0; background:var(--bg-1);
     color:var(--text-2); font-family:var(--font-ui); font-size:var(--fs-md);
     height:100vh; overflow:hidden; position:relative;
+    -webkit-font-smoothing:antialiased;
   }
-  .ambient-glow{
-    position:fixed; inset:-10%; pointer-events:none; z-index:0;
-    background:
-      radial-gradient(1100px 700px at 20% -15%, rgba(17,126,96,.22), transparent 55%),
-      radial-gradient(900px 600px at 85% 10%, rgba(17,126,96,.10), transparent 60%);
-    will-change:transform;
-  }
-  header, .layout{ position:relative; z-index:1; }
-  .display{font-family:var(--font-display);}
-  ::-webkit-scrollbar{width:9px; height:9px;}
+  /* A single, very soft accent light behind the header: depth without noise. */
+  .ambient-glow{position:fixed; inset:0; pointer-events:none; z-index:0;
+    background:radial-gradient(900px 260px at 50% -120px, rgba(19,145,111,.16), transparent 70%);}
+  header, .layout, .statusbar{position:relative; z-index:1;}
+  ::-webkit-scrollbar{width:8px; height:8px;}
   ::-webkit-scrollbar-track{background:transparent;}
-  ::-webkit-scrollbar-thumb{background:var(--line-3); border-radius:5px;}
-  ::-webkit-scrollbar-thumb:hover{background:var(--teal-core);}
+  ::-webkit-scrollbar-thumb{background:var(--line-3); border-radius:4px;}
+  ::-webkit-scrollbar-thumb:hover{background:var(--text-5);}
   :focus-visible{outline:2px solid var(--focus); outline-offset:2px;}
   input[type=range]:focus-visible{outline-offset:6px;}
+  .sr-only{position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0 0 0 0); white-space:nowrap;}
+
+  /* ── Icons (Lucide via <wa-icon library="lucide">) ── */
+  wa-icon{font-size:16px; flex:none; transition:transform .22s var(--ease);}
+  .btn:hover:not(:disabled) .m-tilt{transform:rotate(-10deg) translateY(-1px);}
+  .btn:hover:not(:disabled) .m-spin{transform:rotate(-200deg); transition-duration:.45s;}
+  .btn:hover:not(:disabled) .m-up{transform:translateY(-2px);}
+  .btn:hover:not(:disabled) .m-down{transform:translateY(2px);}
+  .btn:hover:not(:disabled) .m-pop, nav button:hover:not([aria-disabled="true"]) wa-icon{transform:scale(1.14);}
+  .spin{animation:spin 1s linear infinite;}
+  @keyframes spin{to{transform:rotate(360deg);}}
 
   /* ── Header ─────────────────────────────── */
   header{
-    height:76px; display:flex; align-items:center; padding:0 26px; gap:28px;
-    background:linear-gradient(100deg, rgba(10,43,36,.55) 0%, var(--bg-1) 45%, rgba(0,0,0,0) 100%);
-    border-bottom:1px solid rgba(17,126,96,.45);
-    position:relative; z-index:5;
+    height:56px; display:flex; align-items:center; padding:0 16px; gap:20px;
+    background:rgba(13,16,18,.85); border-bottom:1px solid var(--line-1);
+    backdrop-filter:blur(8px); z-index:5;
   }
-  .brand{display:flex; align-items:center; gap:12px; min-width:260px;}
-  .brand img{height:42px; width:42px; object-fit:contain; filter:drop-shadow(0 0 8px rgba(17,126,96,.6));}
-  .brand-text{display:flex; flex-direction:column; gap:3px;}
-  .wordmark{font-family:var(--font-display); font-size:19px; font-weight:700; letter-spacing:5px; color:var(--text-1);}
-  .wordmark .dot{color:var(--teal-glow); margin:0 3px;}
-  .tagline{font-family:'Rajdhani',sans-serif; font-size:var(--fs-xs); font-weight:600; letter-spacing:1.5px; color:var(--teal-glow); text-transform:uppercase;}
+  .brand{display:flex; align-items:center; gap:10px; min-width:230px;}
+  .brand img{height:30px; width:30px; object-fit:contain;}
+  .brand-text{display:flex; flex-direction:column; gap:2px;}
+  .wordmark{font-family:var(--font-display); font-size:15px; font-weight:700; letter-spacing:4px; color:var(--text-1);}
+  .wordmark .dot{color:var(--teal-glow); margin:0 2px;}
+  .tagline{font-size:var(--fs-xs); color:var(--text-4);}
 
   nav{
-    display:flex; gap:2px; background:rgba(0,0,0,.5); border:1px solid var(--line-1);
-    border-radius:24px; padding:5px; position:relative; margin:0 auto;
-    backdrop-filter:blur(6px);
+    display:flex; gap:2px; background:var(--bg-2); border:1px solid var(--line-1);
+    border-radius:var(--radius-lg); padding:3px; position:relative; margin:0 auto;
   }
   nav .pill-indicator{
-    position:absolute; top:5px; left:5px; height:38px; border-radius:19px;
-    background:var(--teal-solid);
-    box-shadow:0 0 16px rgba(17,126,96,.45);
-    transition:left .28s var(--ease), width .28s var(--ease);
-    z-index:0;
+    position:absolute; top:3px; left:3px; height:32px; border-radius:var(--radius-md);
+    background:var(--bg-3); box-shadow:var(--shadow-1), inset 0 -2px 0 var(--teal-mid);
+    transition:left .25s var(--ease), width .25s var(--ease); z-index:0;
   }
   nav button{
     position:relative; z-index:1; background:transparent; border:none; cursor:pointer;
-    color:var(--text-4); font-family:'Rajdhani',sans-serif; font-size:var(--fs-sm); font-weight:700;
-    letter-spacing:1px; padding:9px 16px; border-radius:19px; height:38px;
-    display:flex; align-items:center; gap:8px; transition:color var(--dur) var(--ease);
-    text-transform:uppercase; white-space:nowrap;
+    color:var(--text-4); font-family:var(--font-ui); font-size:var(--fs-sm); font-weight:600;
+    padding:0 12px; border-radius:var(--radius-md); height:32px;
+    display:flex; align-items:center; gap:7px; transition:color var(--dur) var(--ease); white-space:nowrap;
   }
+  nav button wa-icon{font-size:15px;}
   nav button:hover{color:var(--text-2);}
   nav button.active{color:var(--text-1);}
+  nav button.active wa-icon{color:var(--teal-glow);}
   nav button[aria-disabled="true"]{color:var(--text-5); cursor:not-allowed;}
   nav button[aria-disabled="true"]:hover{color:var(--text-4);}
-  .nav-sep{width:1px; align-self:stretch; margin:8px 6px; background:var(--line-3);}
+  .nav-sep{width:1px; align-self:stretch; margin:6px 4px; background:var(--line-2);}
 
-  .lock-indicator{display:flex; align-items:center; gap:6px; min-width:260px; justify-content:flex-end;
-    font-size:var(--fs-xs); font-weight:700; letter-spacing:1px; color:var(--text-4); text-transform:uppercase;}
+  .lock-indicator{display:flex; align-items:center; gap:6px; min-width:230px; justify-content:flex-end;
+    font-size:var(--fs-xs); font-weight:600; color:var(--text-4);}
 
   /* ── Layout ──────────────────────────────── */
-  .layout{display:flex; height:calc(100vh - 76px);}
-  .sidebar{width:280px; padding:18px; display:flex; flex-direction:column; gap:14px; overflow-y:auto;}
-  .sidebar.right{width:340px;}
-  .viewer{flex:1; padding:18px; display:flex; flex-direction:column; gap:14px; min-width:0;}
+  .layout{display:flex; height:calc(100vh - 56px - 28px);}
+  .sidebar{width:272px; padding:12px; display:flex; flex-direction:column; gap:10px; overflow-y:auto; flex:none;}
+  .sidebar.right{width:300px;}
+  .viewer{flex:1; padding:12px 4px; display:flex; flex-direction:column; gap:8px; min-width:0;}
 
   /* ── Cards ───────────────────────────────── */
-  .card{
-    background:var(--bg-2); border:1px solid var(--line-1); border-left:3px solid var(--teal-core);
-    border-radius:var(--radius-lg); padding:16px;
-    box-shadow:0 10px 28px rgba(0,0,0,.55);
-  }
-  .card-title{font-family:var(--font-display); font-size:var(--fs-xs); font-weight:700; letter-spacing:2px; color:var(--teal-glow);
-    text-transform:uppercase; margin:0 0 14px;}
+  .card{background:var(--bg-2); border:1px solid var(--line-1); border-radius:var(--radius-lg); padding:12px 14px; box-shadow:var(--shadow-1);}
+  .card-title{display:flex; align-items:center; gap:8px; font-size:var(--fs-sm); font-weight:600; color:var(--text-1); margin:0 0 10px;}
+  .card-title wa-icon{color:var(--text-3); font-size:15px;}
 
   .btn{
-    display:flex; align-items:center; gap:10px; justify-content:center;
-    background:var(--bg-3); border:1px solid var(--line-3); color:var(--text-2);
-    font-family:var(--font-ui); font-size:14px; font-weight:700; letter-spacing:.5px;
-    border-radius:var(--radius-md); padding:12px 16px; cursor:pointer;
-    transition:all var(--dur) var(--ease); text-transform:uppercase;
+    display:flex; align-items:center; gap:8px; justify-content:center;
+    background:var(--bg-3); border:1px solid var(--line-2); color:var(--text-2);
+    font-family:var(--font-ui); font-size:var(--fs-sm); font-weight:600;
+    border-radius:var(--radius-md); padding:8px 12px; cursor:pointer; box-shadow:var(--shadow-1);
+    transition:background var(--dur) var(--ease), border-color var(--dur) var(--ease), color var(--dur) var(--ease);
   }
-  .btn:hover:not(:disabled){background:var(--line-2); border-color:var(--teal-mid); color:var(--text-1); transform:translateY(-1px);}
-  .btn svg{width:15px;height:15px;}
+  .btn:hover:not(:disabled){background:var(--line-1); border-color:var(--line-3); color:var(--text-1);}
+  .btn:active:not(:disabled){background:var(--bg-2);}
+  .btn-primary{background:var(--teal-solid); border-color:var(--teal-core); color:var(--text-1);}
+  .btn-primary:hover:not(:disabled){background:var(--teal-core); border-color:var(--teal-mid); color:var(--text-1);}
+  .btn-icon{padding:0; width:32px; height:32px;}
+  .btn-row{display:flex; gap:8px;}
+  .btn-row .btn{flex:1;}
+  .btn-row .btn-icon{flex:none; width:38px; height:auto;}
 
-  .btn-primary{
-    background:var(--teal-solid); border:1px solid var(--teal-mid); color:var(--text-1);
-  }
-  .btn-primary:hover:not(:disabled){
-    background:var(--teal-solid); border-color:var(--teal-glow);
-    box-shadow:0 0 18px rgba(17,126,96,.45); transform:translateY(-1px);
-  }
-
-  .meta-row{display:flex; justify-content:space-between; font-size:13px; padding:5px 0; color:var(--text-4);}
-  .meta-row b{color:var(--text-3); font-weight:600;}
+  .meta-row{display:flex; justify-content:space-between; gap:12px; font-size:var(--fs-sm); padding:4px 0; color:var(--text-4);}
+  .meta-row b{color:var(--text-2); font-weight:600; text-align:right; font-variant-numeric:tabular-nums;}
 
   /* ── Stat readouts ───────────────────────── */
-  .stat-row{display:flex; justify-content:space-between; align-items:baseline; margin-bottom:6px;}
-  .stat-label{font-family:var(--font-ui); font-size:var(--fs-xs); font-weight:700; letter-spacing:1.2px; color:var(--text-4); text-transform:uppercase;}
-  .stat-value{font-size:var(--fs-xl); font-weight:700; color:var(--text-1); font-variant-numeric:tabular-nums; min-width:4ch; text-align:right;}
+  .stat-row{display:flex; justify-content:space-between; align-items:baseline; margin-bottom:2px;}
+  .stat-label{font-size:var(--fs-xs); font-weight:600; color:var(--text-4);}
+  .stat-value{font-size:var(--fs-xl); font-weight:600; color:var(--text-1); font-variant-numeric:tabular-nums; min-width:4ch; text-align:right;}
   .stat-value.sm{font-size:var(--fs-lg);}
+  .unit{font-size:var(--fs-xs); font-weight:600; color:var(--text-4); margin-left:4px;}
   input[type=range]{
     -webkit-appearance:none; width:100%; height:4px; border-radius:2px;
     background:linear-gradient(90deg, var(--teal-core) var(--val,40%), var(--line-2) 0);
-    margin:8px 0 16px;
+    margin:8px 0 14px; cursor:pointer;
   }
   input[type=range]::-webkit-slider-thumb{
-    -webkit-appearance:none; width:16px; height:16px; border-radius:50%;
-    background:var(--teal-glow); box-shadow:0 0 8px rgba(17,126,96,.8); cursor:pointer;
+    -webkit-appearance:none; width:14px; height:14px; border-radius:50%;
+    background:var(--text-1); border:3px solid var(--teal-core); box-shadow:0 1px 3px rgba(0,0,0,.6);
   }
-  .preset-row{display:flex; gap:8px;}
-  .preset-row .btn{flex:1; padding:8px; font-size:12.5px;}
+  input[type=range]:disabled{opacity:.45; cursor:not-allowed;}
+  .preset-row{display:flex; gap:6px;}
+  .preset-row .btn{flex:1; padding:6px;}
 
   select.styled-select{
-    width:100%; background:var(--bg-3); color:var(--text-1); border:1px solid var(--line-3);
-    border-radius:var(--radius-sm); padding:10px 12px; font-family:var(--font-ui); font-size:14px;
-    font-weight:600; cursor:pointer; margin-bottom:12px; appearance:none;
-    background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%238a978f'><path d='M7 10l5 5 5-5z'/></svg>");
-    background-repeat:no-repeat; background-position:right 10px center; background-size:16px;
+    width:100%; background:var(--bg-3); color:var(--text-1); border:1px solid var(--line-2);
+    border-radius:var(--radius-md); padding:8px 10px; font-family:var(--font-ui); font-size:var(--fs-sm);
+    font-weight:600; cursor:pointer; margin-bottom:10px; appearance:none; box-shadow:var(--shadow-1);
+    background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%239ba6ad' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><path d='m6 9 6 6 6-6'/></svg>");
+    background-repeat:no-repeat; background-position:right 10px center; background-size:14px;
   }
-  select.styled-select:hover{border-color:var(--teal-core);}
+  select.styled-select:hover{border-color:var(--line-3);}
   select.styled-select:focus{border-color:var(--teal-glow);}
 
   /* ── Toggle switch ───────────────────────── */
   .toggle-row{display:flex; justify-content:space-between; align-items:center;}
-  .toggle-label{font-size:14px; font-weight:600; color:var(--text-2);}
-  .switch{width:46px; height:26px; border-radius:13px; background:var(--line-2);
+  .toggle-label{font-size:var(--fs-sm); font-weight:600; color:var(--text-2);}
+  .switch{width:38px; height:22px; border-radius:11px; background:var(--line-2);
     position:relative; cursor:pointer; transition:background .2s ease; flex-shrink:0; border:1px solid var(--text-5); padding:0;}
-  .switch.on{background:var(--teal-solid);}
-  .switch .knob{position:absolute; top:3px; left:3px; width:20px; height:20px; border-radius:50%;
-    background:var(--text-4); transition:left .18s cubic-bezier(.4,0,.2,1), background .18s ease;}
-  .switch.on .knob{left:23px; background:var(--cream);}
+  .switch.on{background:var(--teal-solid); border-color:var(--teal-core);}
+  .switch .knob{position:absolute; top:2px; left:2px; width:16px; height:16px; border-radius:50%;
+    background:var(--text-3); transition:left .18s var(--ease), background .18s ease;}
+  .switch.on .knob{left:18px; background:var(--cream);}
 
-  /* ── Viewer canvas / empty state ─────────── */
+  /* ── Viewer ──────────────────────────────── */
+  .viewer-toolbar{display:flex; align-items:center; gap:6px; min-height:32px;}
+  .viewer-toolbar .grow{flex:1;}
+  .viewer-toolbar .sep{width:1px; height:20px; background:var(--line-2); margin:0 2px;}
+  .zoom-readout{min-width:46px; text-align:center; font-size:var(--fs-xs); font-weight:600; color:var(--text-3); font-variant-numeric:tabular-nums;}
   .canvas{
     flex:1; background:var(--bg-0); border:1px solid var(--line-1); border-radius:var(--radius-lg);
     display:flex; align-items:center; justify-content:center; position:relative; overflow:hidden;
+    box-shadow:0 0 0 1px rgba(0,0,0,.6), 0 12px 32px rgba(0,0,0,.35);
   }
   .overlays{position:absolute; inset:0; pointer-events:none; z-index:2;}
-  .ov{position:absolute; font-size:var(--fs-sm); font-weight:600; letter-spacing:.5px; color:var(--text-2);
-    text-shadow:0 1px 3px rgba(0,0,0,.9); font-variant-numeric:tabular-nums;}
-  .ov.tl{top:12px; left:14px;} .ov.tr{top:12px; right:14px; text-align:right;}
-  .ov.bl{bottom:12px; left:14px;} .ov.br{bottom:12px; right:14px; text-align:right;}
-  #canvas3d{ position:absolute; inset:0; }
-  #canvas3d canvas{ width:100% !important; height:100% !important; display:block; }
-  .empty-state{display:flex; flex-direction:column; align-items:center; gap:16px; max-width:380px; text-align:center;}
-  .empty-icon{width:60px; height:60px; opacity:.4;}
-  .empty-head{font-family:var(--font-display); font-size:18px; font-weight:700; color:var(--text-4); letter-spacing:1px; text-transform:uppercase;}
-  .empty-sub{font-size:var(--fs-md); color:var(--text-4); line-height:1.5;}
+  .ov{position:absolute; font-family:var(--font-mono); font-size:var(--fs-xs); color:var(--annot);
+    text-shadow:0 1px 2px rgba(0,0,0,.95), 0 0 4px rgba(0,0,0,.8); font-variant-numeric:tabular-nums; line-height:1.5;}
+  .ov.tl{top:10px; left:12px;} .ov.tr{top:10px; right:12px; text-align:right;}
+  .ov.bl{bottom:10px; left:12px;} .ov.br{bottom:10px; right:12px; text-align:right;}
+  .ov.orient{font-family:var(--font-ui); font-size:var(--fs-sm); font-weight:700; color:var(--text-1);}
+  .ov.ol{left:10px; top:50%; transform:translateY(-50%);} .ov.or{right:10px; top:50%; transform:translateY(-50%);}
+  .ov.ot{top:10px; left:50%; transform:translateX(-50%);} .ov.ob{bottom:30px; left:50%; transform:translateX(-50%);}
+  .scalebar[hidden]{display:none;}
+  .scalebar{position:absolute; bottom:30px; right:12px; display:flex; flex-direction:column; align-items:flex-end; gap:2px;}
+  .scalebar .bar{height:5px; border:1px solid var(--annot); border-top:0;}
+  #canvas3d{position:absolute; inset:0;}
+  #canvas3d canvas{width:100% !important; height:100% !important; display:block;}
+  .loading3d{position:absolute; display:flex; align-items:center; gap:8px; color:var(--text-2); font-size:var(--fs-sm); font-weight:600;}
+  .empty-state{display:flex; flex-direction:column; align-items:center; gap:12px; max-width:380px; text-align:center;}
+  .empty-icon{width:52px; height:52px; opacity:.35;}
+  .empty-head{font-size:var(--fs-lg); font-weight:600; color:var(--text-1);}
+  .empty-sub{font-size:var(--fs-sm); color:var(--text-4); line-height:1.55;}
+  .empty-actions{display:flex; gap:8px; margin-top:6px;}
 
-  .viewer-nav{display:flex; gap:12px;}
+  .viewer-nav{display:flex; gap:8px; align-items:center;}
   .viewer-nav .btn{flex:none; white-space:nowrap;}
-  .viewer-nav input[type=range]{flex:1; min-width:0; margin:0; align-self:center;}
+  .viewer-nav input[type=range]{flex:1; min-width:0; margin:0;}
+  .slice-readout{font-size:var(--fs-xs); font-weight:600; color:var(--text-3); min-width:64px; text-align:right; font-variant-numeric:tabular-nums;}
   .viewer-hint{font-size:var(--fs-xs); color:var(--text-4); text-align:center;}
   #sliceImg{user-select:none;}
-  .sr-only{position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0 0 0 0); white-space:nowrap;}
 
   /* ── Camera panel ────────────────────────── */
-  .cam-title{display:flex; align-items:center; gap:8px; justify-content:center;
-    font-family:var(--font-display); font-size:var(--fs-xs); font-weight:700; letter-spacing:2px; color:var(--teal-glow); margin-bottom:10px;}
-  .cam-feed{background:var(--bg-0); border:1px solid var(--line-2); border-radius:var(--radius-md);
-    aspect-ratio:4/3; display:flex; align-items:center; justify-content:center; color:var(--text-4); font-size:var(--fs-sm);}
-  .cam-status{display:flex; align-items:center; gap:8px; margin-top:12px; font-size:var(--fs-sm); font-weight:600; color:var(--text-4);}
-  .status-dot{width:8px; height:8px; border-radius:50%; background:var(--text-5);}
+  .cam-title{display:flex; align-items:center; gap:8px; font-size:var(--fs-sm); font-weight:600; color:var(--text-1); margin:2px 0 4px;}
+  .cam-title wa-icon{color:var(--text-3);}
+  .cam-feed{background:var(--bg-0); border:1px solid var(--line-1); border-radius:var(--radius-lg);
+    aspect-ratio:4/3; display:flex; align-items:center; justify-content:center; color:var(--text-4); font-size:var(--fs-sm); text-align:center; padding:16px;}
+  .cam-status{display:flex; align-items:center; gap:8px; font-size:var(--fs-sm); font-weight:600; color:var(--text-4);}
+  .status-dot{width:8px; height:8px; border-radius:50%; background:var(--text-5); flex:none;}
   /* data-state="active" is for the gesture backend to set once it exists */
   .cam-status[data-state="active"]{color:var(--teal-glow);}
   .cam-status[data-state="active"] .status-dot{background:var(--teal-glow); animation:pulse 1.1s ease-in-out infinite;}
   @keyframes pulse{0%,100%{opacity:1;} 50%{opacity:.3;}}
-  .gesture-box{margin-top:12px; background:var(--bg-3); border:1px solid var(--line-3); border-radius:var(--radius-md);
-    padding:16px; text-align:center;}
-  .gesture-status{color:var(--text-3); font-weight:700; font-size:var(--fs-md); margin-bottom:6px;}
-  .lock-pill{font-size:var(--fs-xs); font-weight:700; letter-spacing:1px; color:var(--text-4); text-transform:uppercase;}
+  .gesture-box{background:var(--bg-2); border:1px solid var(--line-1); border-radius:var(--radius-lg); padding:12px; text-align:center;}
+  .gesture-status{color:var(--text-2); font-weight:600; font-size:var(--fs-md); margin-bottom:4px;}
+  .lock-pill{font-size:var(--fs-xs); font-weight:600; color:var(--text-4);}
+
+  /* ── Status bar ──────────────────────────── */
+  .statusbar{height:28px; display:flex; align-items:center; gap:16px; padding:0 14px;
+    background:var(--bg-2); border-top:1px solid var(--line-1); font-size:var(--fs-xs); color:var(--text-4);}
+  .statusbar .item{display:flex; align-items:center; gap:6px; white-space:nowrap;}
+  .statusbar .grow{flex:1;}
+  .statusbar .status-dot[data-state="ok"]{background:var(--ok);}
+  .statusbar .status-dot[data-state="warn"]{background:var(--amber);}
+  .statusbar .status-dot[data-state="err"]{background:var(--red);}
+  .ruo{border:1px solid var(--line-3); border-radius:4px; padding:1px 6px; font-weight:600; color:var(--text-3);}
+
+  /* ── Shortcuts dialog ────────────────────── */
+  .keys{display:grid; grid-template-columns:auto 1fr; gap:8px 16px; font-size:var(--fs-sm); margin:0;}
+  .keys dt{text-align:right;} .keys dd{margin:0; color:var(--text-3);}
+  kbd{font-family:var(--font-mono); font-size:var(--fs-xs); background:var(--bg-3); border:1px solid var(--line-3);
+    border-bottom-width:2px; border-radius:4px; padding:1px 6px; color:var(--text-1);}
+
   /* ── Toasts ──────────────────────────────── */
-  .toasts{position:fixed; right:20px; bottom:20px; z-index:20; display:flex; flex-direction:column; gap:8px; max-width:380px;}
+  .toasts{position:fixed; right:16px; bottom:40px; z-index:20; display:flex; flex-direction:column; gap:8px; max-width:380px;}
   .toasts > div{display:flex; flex-direction:column; gap:8px;}
   .toast{background:var(--bg-3); border:1px solid var(--line-3); border-left:3px solid var(--teal-mid);
-    border-radius:var(--radius-md); padding:12px 14px; font-size:var(--fs-md); color:var(--text-2);
-    box-shadow:0 10px 28px rgba(0,0,0,.55); cursor:pointer;}
+    border-radius:var(--radius-md); padding:10px 12px; font-size:var(--fs-sm); color:var(--text-2);
+    box-shadow:var(--shadow-2); cursor:pointer;}
   .toast.error{border-left-color:var(--red); color:var(--text-1);}
 
-  .btn:disabled{opacity:.45; cursor:not-allowed; transform:none; box-shadow:none;}
-  input[type=range]:disabled{opacity:.45; cursor:not-allowed;}
-  input[type=range]:disabled::-webkit-slider-thumb{cursor:not-allowed; box-shadow:none;}
+  .btn:disabled{opacity:.45; cursor:not-allowed; box-shadow:none;}
+
+  @media (prefers-reduced-motion: reduce){
+    *, *::before, *::after{animation:none !important; transition:none !important;}
+  }
 </style>
 <script type="importmap">
 {
@@ -262,45 +281,49 @@
     <img src="assets/mimir-emblem.png" alt="">
     <div class="brand-text">
       <div class="wordmark">M<span class="dot">·</span>I<span class="dot">·</span>M<span class="dot">·</span>I<span class="dot">·</span>R</div>
-      <div class="tagline">Gesture-Guided Surgical Intelligence</div>
+      <div class="tagline">Gesture-guided surgical intelligence</div>
     </div>
   </div>
 
   <nav id="nav" role="tablist" aria-label="Tools">
     <div class="pill-indicator" id="pill"></div>
-    <button type="button" role="tab" aria-selected="true"  tabindex="0"  class="active" data-i="0">DICOM</button>
-    <button type="button" role="tab" aria-selected="false" tabindex="-1" data-i="1" id="tab3d"      data-needs-scan aria-disabled="true">3D VIEW</button>
-    <button type="button" role="tab" aria-selected="false" tabindex="-1" data-i="2" id="tabFilter"  data-needs-scan aria-disabled="true">FILTER</button>
-    <button type="button" role="tab" aria-selected="false" tabindex="-1" data-i="3" id="tabSegment" data-needs-scan aria-disabled="true">SEGMENT</button>
+    <button type="button" role="tab" aria-selected="true"  tabindex="0"  class="active" data-i="0"><wa-icon library="lucide" name="scan-line"></wa-icon>Viewer</button>
+    <button type="button" role="tab" aria-selected="false" tabindex="-1" data-i="1" id="tab3d"      data-needs-scan aria-disabled="true"><wa-icon library="lucide" name="box"></wa-icon>3D view</button>
+    <button type="button" role="tab" aria-selected="false" tabindex="-1" data-i="2" id="tabFilter"  data-needs-scan aria-disabled="true"><wa-icon library="lucide" name="sliders-horizontal"></wa-icon>Filter</button>
+    <button type="button" role="tab" aria-selected="false" tabindex="-1" data-i="3" id="tabSegment" data-needs-scan aria-disabled="true"><wa-icon library="lucide" name="brain-circuit"></wa-icon>Segment</button>
     <span class="nav-sep" aria-hidden="true"></span>
-    <button type="button" role="tab" aria-selected="false" tabindex="-1" data-i="4" data-planned="Registration"  aria-disabled="true" title="Planned for a later release">REGISTER</button>
-    <button type="button" role="tab" aria-selected="false" tabindex="-1" data-i="5" data-planned="Path planning" aria-disabled="true" title="Planned for a later release">PATH PLAN</button>
-    <button type="button" role="tab" aria-selected="false" tabindex="-1" data-i="6" data-planned="Measurement"   aria-disabled="true" title="Planned for a later release">MEASURE</button>
-    <button type="button" role="tab" aria-selected="false" tabindex="-1" data-i="7" data-planned="Review"        aria-disabled="true" title="Planned for a later release">REVIEW</button>
+    <button type="button" role="tab" aria-selected="false" tabindex="-1" data-i="4" data-planned="Registration"  aria-disabled="true" title="Planned for a later release"><wa-icon library="lucide" name="git-compare-arrows"></wa-icon>Register</button>
+    <button type="button" role="tab" aria-selected="false" tabindex="-1" data-i="5" data-planned="Path planning" aria-disabled="true" title="Planned for a later release"><wa-icon library="lucide" name="route"></wa-icon>Path plan</button>
+    <button type="button" role="tab" aria-selected="false" tabindex="-1" data-i="6" data-planned="Measurement"   aria-disabled="true" title="Planned for a later release"><wa-icon library="lucide" name="ruler"></wa-icon>Measure</button>
+    <button type="button" role="tab" aria-selected="false" tabindex="-1" data-i="7" data-planned="Review"        aria-disabled="true" title="Planned for a later release"><wa-icon library="lucide" name="clipboard-check"></wa-icon>Review</button>
   </nav>
 
-  <div class="lock-indicator" id="lockIndicator">Gestures: off</div>
+  <div class="lock-indicator" id="lockIndicator"><wa-icon library="lucide" name="hand"></wa-icon>Gestures off</div>
 </header>
 
 <div class="layout">
   <aside class="sidebar" aria-label="Scan controls">
-    <button class="btn" onclick="openFile()">📁 Open DICOM File</button>
-    <button class="btn" onclick="openFolder()">🗂 Open DICOM Folder</button>
+    <div class="btn-row">
+      <button class="btn btn-primary" id="btnOpenFolder" onclick="openFolder()"><wa-icon library="lucide" name="folder-open" class="m-tilt"></wa-icon>Open series</button>
+      <button class="btn btn-icon" id="btnOpenFile" onclick="openFile()" aria-label="Open a single DICOM file"><wa-icon library="lucide" name="file-plus" class="m-pop"></wa-icon></button>
+    </div>
+    <wa-tooltip for="btnOpenFolder">Open a DICOM series folder <kbd>O</kbd></wa-tooltip>
+    <wa-tooltip for="btnOpenFile">Open a single DICOM file</wa-tooltip>
 
     <div class="card">
-      <div class="card-title">Patient Info</div>
-      <div class="meta-row"><span>Patient</span><b id="m-patient">—</b></div>
+      <div class="card-title"><wa-icon library="lucide" name="user"></wa-icon>Patient</div>
+      <div class="meta-row"><span>Name</span><b id="m-patient">—</b></div>
       <div class="meta-row"><span>Modality</span><b id="m-modality">—</b></div>
-      <div class="meta-row"><span>Study Date</span><b id="m-date">—</b></div>
-      <div class="meta-row"><span>Rows</span><b id="m-rows">—</b></div>
-      <div class="meta-row"><span>Columns</span><b id="m-cols">—</b></div>
+      <div class="meta-row"><span>Study date</span><b id="m-date">—</b></div>
+      <div class="meta-row"><span>Matrix</span><b><span id="m-cols">—</span> × <span id="m-rows">—</span></b></div>
+      <div class="meta-row"><span>Voxel (mm)</span><b id="m-spacing">—</b></div>
     </div>
 
     <div class="card">
-      <div class="card-title">Windowing</div>
-      <div class="stat-row"><label class="stat-label" for="wlSlider">Level (WL)</label><output class="stat-value" id="wlv" for="wlSlider">40</output></div>
+      <div class="card-title"><wa-icon library="lucide" name="sun-medium"></wa-icon>Window</div>
+      <div class="stat-row"><label class="stat-label" for="wlSlider">Level</label><span><output class="stat-value" id="wlv" for="wlSlider">40</output><span class="unit" data-hu-unit>HU</span></span></div>
       <input type="range" id="wlSlider" min="-1000" max="3000" value="40" style="--val:34%" oninput="onWindowInput()">
-      <div class="stat-row"><label class="stat-label" for="wwSlider">Width (WW)</label><output class="stat-value" id="wwv" for="wwSlider">400</output></div>
+      <div class="stat-row"><label class="stat-label" for="wwSlider">Width</label><span><output class="stat-value" id="wwv" for="wwSlider">400</output><span class="unit" data-hu-unit>HU</span></span></div>
       <input type="range" id="wwSlider" min="1" max="4000" value="400" style="--val:10%" oninput="onWindowInput()">
       <div class="preset-row">
         <button class="btn" data-hu onclick="applyPreset(40,80)">Brain</button>
@@ -310,16 +333,16 @@
     </div>
 
     <div class="card" id="cardSegment" style="display:none;">
-      <div class="card-title">AI Segmentation</div>
-      <button class="btn btn-primary" id="btnRunSegment" onclick="runSegmentation()" style="width:100%; margin-bottom:12px; justify-content:center;">Run segmentation</button>
+      <div class="card-title"><wa-icon library="lucide" name="sparkles"></wa-icon>AI segmentation</div>
+      <button class="btn btn-primary" id="btnRunSegment" onclick="runSegmentation()" style="width:100%; margin-bottom:10px;">Run segmentation</button>
 
       <div id="segProgressWrap" style="display:none;">
-        <div class="stat-label" style="margin-bottom:6px; display:block;">PROGRESS</div>
-        <div id="segLog" style="background:var(--bg-0); border:1px solid var(--line-2); border-radius:var(--radius-sm); padding:8px; height:90px; overflow-y:auto; font-family:monospace; font-size:var(--fs-xs); color:var(--text-3); margin-bottom:12px; line-height:1.5;"></div>
-        <button class="btn" id="btnCancelSegment" onclick="cancelSegmentation()" style="display:none; width:100%; margin-bottom:12px; justify-content:center;">Cancel segmentation</button>
+        <div class="stat-label" style="margin-bottom:6px; display:block;">Progress</div>
+        <div id="segLog" style="background:var(--bg-0); border:1px solid var(--line-2); border-radius:var(--radius-sm); padding:8px; height:90px; overflow-y:auto; font-family:var(--font-mono); font-size:var(--fs-xs); color:var(--text-3); margin-bottom:10px; line-height:1.5;"></div>
+        <button class="btn" id="btnCancelSegment" onclick="cancelSegmentation()" style="display:none; width:100%; margin-bottom:10px;">Cancel segmentation</button>
       </div>
 
-      <div id="segErrorWrap" style="display:none; color:var(--red); font-size:var(--fs-sm); margin-bottom:12px;"></div>
+      <div id="segErrorWrap" style="display:none; color:var(--red); font-size:var(--fs-sm); margin-bottom:10px;"></div>
 
       <div class="toggle-row" id="segToggleRow" style="display:none;">
         <span class="toggle-label" id="segOverlayLabel">Show overlay</span>
@@ -327,17 +350,17 @@
                 aria-labelledby="segOverlayLabel" onclick="onToggleOverlay()"><span class="knob"></span></button>
       </div>
 
-      <div id="segOpacityWrap" style="display:none; margin-top:12px;">
+      <div id="segOpacityWrap" style="display:none; margin-top:10px;">
         <div class="stat-row"><label class="stat-label" for="segOpacitySlider">Opacity</label><output class="stat-value sm" id="segOpacityV" for="segOpacitySlider">45%</output></div>
         <input type="range" id="segOpacitySlider" min="0" max="100" value="45" style="--val:45%" oninput="onOpacityInput()">
       </div>
 
-      <div id="segLegend" style="display:none; margin-top:12px; max-height:220px; overflow-y:auto;"></div>
+      <div id="segLegend" style="display:none; margin-top:10px; max-height:220px; overflow-y:auto;"></div>
     </div>
 
     <div class="card" id="cardFilter" style="display:none;">
-      <div class="card-title">Image Filters</div>
-      <label class="stat-label" for="filterSelect" style="display:block; margin-bottom:8px;">Filter</label>
+      <div class="card-title"><wa-icon library="lucide" name="sliders-horizontal"></wa-icon>Image filter</div>
+      <label class="stat-label" for="filterSelect" style="display:block; margin-bottom:6px;">Filter</label>
       <select id="filterSelect" class="styled-select" onchange="onFilterChange()">
         <option>None (Original)</option>
       </select>
@@ -346,12 +369,12 @@
     </div>
 
     <div class="card" id="card3d" style="display:none;">
-      <div class="card-title">3D Rendering</div>
-      <div class="stat-row"><label class="stat-label" id="isoLabel" for="isoSlider">Iso value</label><output class="stat-value" id="isov" for="isoSlider">300</output></div>
+      <div class="card-title"><wa-icon library="lucide" name="box"></wa-icon>3D surface</div>
+      <div class="stat-row"><label class="stat-label" id="isoLabel" for="isoSlider">Iso value</label><span><output class="stat-value" id="isov" for="isoSlider">300</output><span class="unit" data-hu-unit>HU</span></span></div>
       <input type="range" id="isoSlider" min="-200" max="2000" value="300" style="--val:25%" oninput="onIsoInput()">
-      <div class="preset-row" style="margin-top:6px;">
+      <div class="preset-row" style="margin-top:4px;">
         <button class="btn" data-hu onclick="applyIsoPreset('bone')">Bone</button>
-        <button class="btn" data-hu onclick="applyIsoPreset('soft')">Soft Tissue</button>
+        <button class="btn" data-hu onclick="applyIsoPreset('soft')">Soft tissue</button>
         <button class="btn" data-hu onclick="applyIsoPreset('skin')">Skin</button>
       </div>
       <div id="meshInfo" style="margin-top:10px; font-size:var(--fs-xs); color:var(--text-4);"></div>
@@ -359,12 +382,31 @@
   </aside>
 
   <main class="viewer">
+    <div class="viewer-toolbar" role="toolbar" aria-label="View">
+      <button class="btn btn-icon" id="btnZoomOut" onclick="zoomBy(1/1.25)" aria-label="Zoom out" disabled><wa-icon library="lucide" name="zoom-out" class="m-pop"></wa-icon></button>
+      <span class="zoom-readout" id="zoomReadout">100%</span>
+      <button class="btn btn-icon" id="btnZoomIn" onclick="zoomBy(1.25)" aria-label="Zoom in" disabled><wa-icon library="lucide" name="zoom-in" class="m-pop"></wa-icon></button>
+      <button class="btn btn-icon" id="btnFit" onclick="fitView()" aria-label="Fit to window" disabled><wa-icon library="lucide" name="maximize" class="m-pop"></wa-icon></button>
+      <span class="sep"></span>
+      <button class="btn" id="btnReset" onclick="resetView()" disabled><wa-icon library="lucide" name="rotate-ccw" class="m-spin"></wa-icon>Reset</button>
+      <span class="grow"></span>
+      <button class="btn btn-icon" id="btnHelp" onclick="showShortcuts()" aria-label="Keyboard and mouse shortcuts"><wa-icon library="lucide" name="circle-help" class="m-pop"></wa-icon></button>
+    </div>
+    <wa-tooltip for="btnZoomOut">Zoom out <kbd>−</kbd></wa-tooltip>
+    <wa-tooltip for="btnZoomIn">Zoom in <kbd>+</kbd> · <kbd>Ctrl</kbd>+wheel</wa-tooltip>
+    <wa-tooltip for="btnFit">Fit to window <kbd>0</kbd></wa-tooltip>
+    <wa-tooltip for="btnReset">Reset zoom, pan and window <kbd>R</kbd> · double-click</wa-tooltip>
+    <wa-tooltip for="btnHelp">Shortcuts <kbd>?</kbd></wa-tooltip>
+
     <div class="canvas">
       <div class="empty-state" id="emptyState">
         <img src="assets/mimir-emblem.png" class="empty-icon" alt="">
-        <div class="empty-head">No Scan Loaded</div>
-        <div class="empty-sub">Open a DICOM file or folder to begin viewing, filtering, segmenting, registering, and planning needle paths.</div>
-        <button class="btn btn-primary" style="margin-top:6px; padding:13px 26px;" onclick="openFile()">📁 Open DICOM File</button>
+        <div class="empty-head">No scan loaded</div>
+        <div class="empty-sub">Open a DICOM series to view slices, adjust the window, filter, build a 3D surface and run AI segmentation.</div>
+        <div class="empty-actions">
+          <button class="btn btn-primary" onclick="openFolder()"><wa-icon library="lucide" name="folder-open" class="m-tilt"></wa-icon>Open series</button>
+          <button class="btn" onclick="openFile()"><wa-icon library="lucide" name="file-plus" class="m-pop"></wa-icon>Open file</button>
+        </div>
       </div>
       <img id="sliceImg" alt="" draggable="false" style="display:none; max-width:100%; max-height:100%; object-fit:contain;">
       <div class="overlays" id="overlays" hidden>
@@ -372,22 +414,29 @@
         <div class="ov tr" id="ovTR" aria-live="polite" aria-atomic="true"></div>
         <div class="ov bl" id="ovBL"></div>
         <div class="ov br" id="ovBR"></div>
+        <div class="ov orient ol" id="ovL"></div>
+        <div class="ov orient or" id="ovR"></div>
+        <div class="ov orient ot" id="ovT"></div>
+        <div class="ov orient ob" id="ovB"></div>
+        <div class="ov scalebar" id="scaleBar" hidden><div class="bar" id="scaleBarLine"></div><span id="scaleBarLabel"></span></div>
       </div>
       <div id="canvas3d" style="opacity:0; pointer-events:none; width:100%; height:100%;"></div>
-      <div id="loading3d" style="display:none; position:absolute; color:var(--teal-glow); font-family:var(--font-display); font-size:12px; letter-spacing:2px;">BUILDING MESH…</div>
+      <div id="loading3d" class="loading3d" style="display:none;"><wa-spinner></wa-spinner>Building surface…</div>
     </div>
     <div class="viewer-nav">
-      <button class="btn" id="btnPrev" onclick="navSlice(-1)" title="Previous slice (↑ or scroll)" disabled>◀ Prev</button>
+      <button class="btn btn-icon" id="btnPrev" onclick="navSlice(-1)" aria-label="Previous slice" disabled><wa-icon library="lucide" name="chevron-up" class="m-up"></wa-icon></button>
       <label class="sr-only" for="sliceSlider">Slice</label>
       <input type="range" id="sliceSlider" min="0" max="0" value="0" style="--val:0%" oninput="onSliceInput()" disabled>
-      <button class="btn" id="btnNext" onclick="navSlice(1)" title="Next slice (↓ or scroll)" disabled>Next ▶</button>
-      <button class="btn" id="btnReset" onclick="resetView()" title="Reset zoom, pan and window (R or double-click)" disabled>↻ Reset View</button>
+      <button class="btn btn-icon" id="btnNext" onclick="navSlice(1)" aria-label="Next slice" disabled><wa-icon library="lucide" name="chevron-down" class="m-down"></wa-icon></button>
+      <span class="slice-readout" id="sliceReadout">— / —</span>
     </div>
-    <div class="viewer-hint" id="viewerHint" hidden>Wheel: slice · Drag: window/level · Right-drag: pan · Ctrl+wheel: zoom · Double-click: reset</div>
+    <wa-tooltip for="btnPrev">Previous slice <kbd>↑</kbd> · wheel</wa-tooltip>
+    <wa-tooltip for="btnNext">Next slice <kbd>↓</kbd> · wheel</wa-tooltip>
+    <div class="viewer-hint" id="viewerHint" hidden>Wheel: slice · Drag: window/level · Right-drag: pan · Ctrl+wheel: zoom · Double-click: reset · <kbd>?</kbd> all shortcuts</div>
   </main>
 
   <aside class="sidebar right" aria-label="Gesture control">
-    <div class="cam-title">Gesture camera</div>
+    <div class="cam-title"><wa-icon library="lucide" name="hand"></wa-icon>Gesture camera</div>
     <div class="cam-feed">Gesture control arrives in a later release.</div>
     <div class="cam-status" id="camStatus" data-state="off"><span class="status-dot"></span>Camera: not connected</div>
     <div class="gesture-box">
@@ -397,17 +446,41 @@
   </aside>
 </div>
 
+<footer class="statusbar" aria-label="System status">
+  <span class="item" id="sbEngine"><span class="status-dot" data-state="ok"></span><span>Engine connected</span></span>
+  <span class="item" id="sbDocker"><wa-icon library="lucide" name="container"></wa-icon><span>Docker: checking…</span></span>
+  <span class="item" id="sbSeries"></span>
+  <span class="grow"></span>
+  <span class="item ruo">Research use only · not for diagnosis</span>
+  <span class="item" id="sbVersion"></span>
+</footer>
+
+<wa-dialog id="shortcutsDialog" label="Shortcuts" light-dismiss>
+  <dl class="keys">
+    <dt><kbd>↑</kbd> <kbd>↓</kbd> · wheel</dt><dd>Previous / next slice</dd>
+    <dt><kbd>PgUp</kbd> <kbd>PgDn</kbd></dt><dd>Jump 10 slices</dd>
+    <dt>Left-drag</dt><dd>Window / level (→ wider, ↓ higher level)</dd>
+    <dt>Right-drag</dt><dd>Pan</dd>
+    <dt><kbd>Ctrl</kbd>+wheel · <kbd>+</kbd> <kbd>−</kbd></dt><dd>Zoom</dd>
+    <dt><kbd>0</kbd></dt><dd>Fit to window</dd>
+    <dt><kbd>R</kbd> · double-click</dt><dd>Reset zoom, pan and window</dd>
+    <dt><kbd>O</kbd></dt><dd>Open a series</dd>
+    <dt><kbd>?</kbd></dt><dd>This list</dd>
+  </dl>
+</wa-dialog>
+
 <div class="toasts">
   <div id="toastLive" aria-live="polite"></div>
   <div id="toastAlert" aria-live="assertive"></div>
 </div>
 <script src="/vendor/gsap.min.js"></script>
 <script>
+  // Reduced motion: GSAP tweens finish almost instantly (CSS motion is off via the media query).
+  if (matchMedia('(prefers-reduced-motion: reduce)').matches) gsap.globalTimeline.timeScale(50);
+
   // ── Entrance animation ──────────────────────
   gsap.set(['header', '.sidebar', '.viewer'], { opacity: 0 });
-  gsap.set('header', { y: -16 });
-  gsap.set('.sidebar', { y: 12 });
-  gsap.set('.viewer', { y: 16, scale: 0.985 });
+  gsap.set(['.sidebar', '.viewer'], { y: 8 });
 
   // Non-blocking messages. Info fades after 4s; errors stay until clicked or Esc.
   function toast(msg, kind = 'info') {
@@ -423,10 +496,8 @@
   });
   window.addEventListener('DOMContentLoaded', () => {
     const tl = gsap.timeline({ defaults: { ease: 'power3.out' } });
-    tl.to('header', { opacity: 1, y: 0, duration: 0.55 })
-      .to('.sidebar', { opacity: 1, y: 0, duration: 0.5, stagger: 0.12 }, '-=0.3')
-      .to('.viewer', { opacity: 1, y: 0, scale: 1, duration: 0.6 }, '-=0.35')
-      .from('.card', { opacity: 0, y: 10, duration: 0.4, stagger: 0.08 }, '-=0.35');
+    tl.to('header', { opacity: 1, duration: 0.3 })
+      .to(['.sidebar', '.viewer'], { opacity: 1, y: 0, duration: 0.35, stagger: 0.05 }, '-=0.15');
   });
 
   // ── Fade helpers (used for tab/view transitions) ──
@@ -449,27 +520,6 @@
       onUpdate: () => { el.textContent = Math.round(obj.v); }
     });
   }
-
-  // ── Button click punch + card hover lift ──
-  document.querySelectorAll('.btn').forEach(btn => {
-    btn.addEventListener('click', () => {
-      gsap.fromTo(btn, { scale: 0.96 }, { scale: 1, duration: 0.28, ease: 'elastic.out(1, 0.5)' });
-    });
-  });
-  document.querySelectorAll('.card').forEach(card => {
-    card.addEventListener('mouseenter', () => {
-      gsap.to(card, { y: -3, duration: 0.25, ease: 'power2.out' });
-    });
-    card.addEventListener('mouseleave', () => {
-      gsap.to(card, { y: 0, duration: 0.3, ease: 'power2.out' });
-    });
-  });
-
-  // ── Ambient background drift ────────────────
-  gsap.to('#ambientGlow', {
-    xPercent: 4, yPercent: -3,
-    duration: 14, ease: 'sine.inOut', repeat: -1, yoyo: true
-  });
 
   const nav = document.getElementById('nav');
   const pill = document.getElementById('pill');
@@ -606,7 +656,7 @@
     if (sliceLoading) { slicePending = true; return; }
     sliceLoading = true;
     const img = new Image();
-    img.onload = () => { sliceImg.src = img.src; sliceDone(); };
+    img.onload = () => { sliceImg.src = img.src; sliceDone(); updateScaleBar(); };
     img.onerror = () => { toast('Could not render this slice. See the log file for details.', 'error'); sliceDone(); };
     img.src = `/api/dicom/slice?i=${currentSlice}&wl=${wlSlider.value}&ww=${wwSlider.value}&t=${Date.now()}`;
   }
@@ -623,35 +673,60 @@
     updateOverlays();
   }
 
-  // PACS-style corner annotations. Filter index 0 is "None (Original)".
+  // PACS-style annotations: corners, orientation at the edges, scale bar. Filter index 0 is "None (Original)".
+  let geom = null, isCT = true;
   function updateOverlays() {
     const $ = id => document.getElementById(id);
     const f = $('filterSelect');
+    const hu = isCT ? ' HU' : '';
     $('ovTL').textContent = `${$('m-modality').textContent} · ${$('m-patient').textContent}`;
-    $('ovTR').textContent = `Slice ${currentSlice + 1} / ${numSlices}`;
-    $('ovBL').textContent = `WL ${wlv.textContent} · WW ${wwv.textContent}`;
-    $('ovBR').textContent = [
-      f.selectedIndex > 0 ? `${f.value} × ${$('filterStrengthV').textContent}` : '',
-      zoom > 1 ? `Zoom ${zoom.toFixed(1)}×` : '',
-    ].filter(Boolean).join(' · ');
+    $('ovTR').textContent = `Im ${currentSlice + 1} / ${numSlices}`;
+    $('ovBL').textContent = `WL ${wlv.textContent}${hu} · WW ${wwv.textContent}${hu}`;
+    $('ovBR').textContent = f.selectedIndex > 0 ? `${f.value} × ${$('filterStrengthV').textContent}` : '';
+    $('sliceReadout').textContent = numSlices ? `${currentSlice + 1} / ${numSlices}` : '— / —';
+    $('zoomReadout').textContent = Math.round(zoom * 100) + '%';
+    ['L', 'R', 'T', 'B'].forEach(k => $('ov' + k).textContent =
+      geom ? geom[{L: 'left', R: 'right', T: 'top', B: 'bottom'}[k]] : '');
+    updateScaleBar();
   }
+
+  // A round-length bar (5 mm … 100 mm) between ~50 and ~140 screen px.
+  function updateScaleBar() {
+    const bar = document.getElementById('scaleBar');
+    const natural = sliceImg.naturalWidth;
+    if (!geom || !natural || !sliceImg.clientWidth) { bar.hidden = true; return; }
+    const pxPerMm = sliceImg.clientWidth * zoom / natural / geom.spacing[0];
+    const mm = [5, 10, 20, 50, 100].find(v => v * pxPerMm >= 50) || 100;
+    document.getElementById('scaleBarLine').style.width = Math.round(mm * pxPerMm) + 'px';
+    document.getElementById('scaleBarLabel').textContent = mm >= 10 ? `${mm / 10} cm` : `${mm} mm`;
+    bar.hidden = false;
+  }
+  window.addEventListener('resize', updateScaleBar);
+
+  const fmtDate = d => /^\d{8}$/.test(d || '') ? `${d.slice(0, 4)}-${d.slice(4, 6)}-${d.slice(6)}` : (d || '—');
 
   function applyLoadedState(data) {
     numSlices = data.num_slices;
     currentSlice = data.current_slice;
+    geom = data.geometry || null;
     document.getElementById('m-patient').textContent = data.meta.Patient || '—';
     document.getElementById('m-modality').textContent = data.meta.Modality || '—';
-    document.getElementById('m-date').textContent = data.meta['Study Date'] || '—';
+    document.getElementById('m-date').textContent = fmtDate(data.meta['Study Date']);
     document.getElementById('m-rows').textContent = data.meta.Rows || '—';
     document.getElementById('m-cols').textContent = data.meta.Columns || '—';
+    document.getElementById('m-spacing').textContent = geom
+      ? geom.spacing.map(v => +v.toFixed(2)).join(' × ') : '—';
+    document.querySelector('#sbSeries').textContent =
+      `${data.meta.Modality || ''} · ${data.meta.Columns}×${data.meta.Rows} · ${numSlices} images`;
 
     resetSegmentPanel();
     // Window and iso presets are Hounsfield units; they mean nothing on MRI.
-    const isCT = (data.meta.Modality || '').toUpperCase() === 'CT';
+    isCT = (data.meta.Modality || '').toUpperCase() === 'CT';
     document.querySelectorAll('[data-hu]').forEach(b => {
       b.disabled = !isCT;
       b.title = isCT ? '' : 'CT presets (Hounsfield units) do not apply to this modality';
     });
+    document.querySelectorAll('[data-hu-unit]').forEach(u => u.hidden = !isCT);
 
     wlSlider.value = data.wl; wwSlider.value = data.ww;
     wlv.textContent = data.wl; wwv.textContent = data.ww;
@@ -689,7 +764,7 @@
       const slider = document.getElementById('isoSlider');
       slider.min = d.min; slider.max = d.max; slider.value = d.default;
       document.getElementById('isov').textContent = Math.round(d.default);
-      document.getElementById('isoLabel').textContent = d.label.toUpperCase();
+      document.getElementById('isoLabel').textContent = d.label;
       slider.style.setProperty('--val', ((d.default - d.min) / (d.max - d.min) * 100) + '%');
     });
 
@@ -773,10 +848,14 @@
     refreshSliceImage();
   }
 
-  // ↑/↓ = one slice, PageUp/PageDown = ten, R = reset view.
+  // ↑/↓ = one slice, PageUp/PageDown = ten; single keys for view commands (listed in the shortcuts dialog).
   document.addEventListener('keydown', e => {
-    if (e.target.closest('input, select, [role=tab]')) return;
-    if ((e.key === 'r' || e.key === 'R') && !e.ctrlKey && !e.metaKey && !e.altKey) { resetView(); return; }
+    if (e.target.closest('input, select, [role=tab], wa-dialog')) return;
+    if (!e.ctrlKey && !e.metaKey && !e.altKey) {
+      const cmd = {r: resetView, R: resetView, o: openFolder, O: openFolder, '?': showShortcuts,
+        '+': () => zoomBy(1.25), '=': () => zoomBy(1.25), '-': () => zoomBy(1 / 1.25), '0': fitView}[e.key];
+      if (cmd) { e.preventDefault(); cmd(); return; }
+    }
     const d = {ArrowUp: -1, ArrowDown: 1, PageUp: -10, PageDown: 10}[e.key];
     if (d === undefined || window.__canvas3DVisible) return;
     e.preventDefault();
@@ -793,16 +872,24 @@
     if (!in2D()) return;
     e.preventDefault();
     if (!e.ctrlKey) { navSlice(Math.sign(e.deltaY)); return; }
-    // Keep the image point under the cursor fixed while zooming.
     const r = canvasEl.getBoundingClientRect();
-    const cx = e.clientX - r.left - r.width / 2, cy = e.clientY - r.top - r.height / 2;
-    const z = Math.max(1, Math.min(8, zoom * (e.deltaY < 0 ? 1.15 : 1 / 1.15)));
+    zoomAt(e.clientX - r.left - r.width / 2, e.clientY - r.top - r.height / 2, e.deltaY < 0 ? 1.15 : 1 / 1.15);
+  }, {passive: false});
+
+  // Zoom by `factor` keeping the image point at (cx, cy) — canvas-centre coordinates — fixed.
+  function zoomAt(cx, cy, factor) {
+    if (!in2D()) return;
+    const z = Math.max(1, Math.min(8, zoom * factor));
     panX = cx - (cx - panX) * z / zoom;
     panY = cy - (cy - panY) * z / zoom;
     zoom = z;
     if (zoom === 1) panX = panY = 0;
     applyTransform();
-  }, {passive: false});
+    syncViewerChrome();
+  }
+  const zoomBy = factor => zoomAt(0, 0, factor);
+  function fitView() { if (in2D()) { zoom = 1; panX = panY = 0; applyTransform(); syncViewerChrome(); } }
+  function showShortcuts() { document.getElementById('shortcutsDialog').open = true; }
 
   canvasEl.addEventListener('pointerdown', e => {
     if (!in2D() || (e.button !== 0 && e.button !== 2)) return;
@@ -840,9 +927,32 @@
     document.getElementById('btnNext').disabled = numSlices === 0 || in3d;
     document.getElementById('sliceSlider').disabled = numSlices === 0 || in3d;
     document.getElementById('btnReset').disabled = numSlices === 0 && !in3d;
+    document.getElementById('btnZoomIn').disabled = numSlices === 0 || in3d || zoom >= 8;
+    document.getElementById('btnZoomOut').disabled = numSlices === 0 || in3d || zoom <= 1;
+    document.getElementById('btnFit').disabled = numSlices === 0 || in3d || zoom === 1;
     document.getElementById('overlays').hidden = in3d || numSlices === 0;
     document.getElementById('viewerHint').hidden = in3d || numSlices === 0 || hintDismissed;
   }
+
+  // ── Status bar: engine heartbeat + Docker readiness ──
+  const DOCKER_TEXT = {
+    ready: ['ok', 'Docker ready'], 'no-image': ['warn', 'Docker ready · model downloads on first run (~15 GB)'],
+    stopped: ['warn', 'Docker not running · segmentation unavailable'], missing: ['err', 'Docker not installed · segmentation unavailable'],
+  };
+  async function refreshSystem() {
+    const eng = document.getElementById('sbEngine'), dock = document.getElementById('sbDocker');
+    try {
+      const s = await (await fetch('/api/system')).json();
+      eng.innerHTML = '<span class="status-dot" data-state="ok"></span><span>Engine connected</span>';
+      const [st, text] = DOCKER_TEXT[s.docker];
+      dock.innerHTML = `<span class="status-dot" data-state="${st}"></span><span>${text}</span>`;
+      document.getElementById('sbVersion').textContent = 'v' + s.version;
+    } catch {
+      eng.innerHTML = '<span class="status-dot" data-state="err"></span><span>Engine not responding · restart MIMIR</span>';
+    }
+  }
+  refreshSystem();
+  setInterval(refreshSystem, 30000);
 
   let isoDebounce = null;
   function onIsoInput() {
@@ -1001,7 +1111,7 @@
     if (s.has_volume) {
       applyLoadedState({
         meta: s.meta, num_slices: s.num_slices, current_slice: s.current_slice,
-        wl: s.wl, ww: s.ww
+        wl: s.wl, ww: s.ww, geometry: s.geometry
       });
     }
   })();
@@ -1101,7 +1211,7 @@
   let meshRequest = null;
   window.loadMesh = async function (iso) {
     const loading = document.getElementById('loading3d');
-    loading.style.display = 'block';
+    loading.style.display = 'flex';
     // Only the latest iso value counts; a slow older response must not replace it.
     meshRequest?.abort();
     const ctl = meshRequest = new AbortController();

@@ -44,6 +44,10 @@ def load_dicom_path(path: str):
         if "PixelSpacing" in ds:
             dy, dx = (float(v) for v in ds.PixelSpacing)
             img.SetSpacing((dx, dy, float(ds.get("SliceThickness") or 1.0)))
+        if "ImageOrientationPatient" in ds:
+            r = np.array(ds.ImageOrientationPatient[:3], float)
+            c = np.array(ds.ImageOrientationPatient[3:], float)
+            img.SetDirection(np.column_stack([r, c, np.cross(r, c)]).ravel().tolist())
         return arr, img, _meta(ds)
 
     if os.path.isdir(path):

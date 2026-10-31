@@ -99,6 +99,38 @@ def check_viewer_controls():
         assert f'id="{vid}"' in HTML, f"missing #{vid}"
 
 
+def check_icons():
+    glyphs = re.findall(r"[\U0001F300-\U0001FAFF☀-➿◀▶↻]", HTML)
+    assert not glyphs, f"emoji / text glyphs used as icons: {sorted(set(glyphs))}"
+    assert "registerIconLibrary('lucide'" in HTML, "Lucide icon library not registered"
+    vendor = Path(__file__).parent.parent / "static" / "vendor" / "lucide"
+    missing = {n for n in re.findall(r'library="lucide" name="([\w-]+)"', HTML) if not (vendor / f"{n}.svg").exists()}
+    assert not missing, f"icons not vendored: {sorted(missing)}"
+
+
+def check_one_ui_font():
+    assert "Rajdhani" not in HTML, "UI uses one font (--font-ui); Rajdhani is gone"
+    assert not re.search(r"text-transform:\s*uppercase", HTML), "sentence case: no forced uppercase"
+
+
+def check_clinical_overlays():
+    for oid in ("ovL", "ovR", "ovT", "ovB", "scaleBar", "sliceReadout"):
+        assert f'id="{oid}"' in HTML, f"missing #{oid}"
+    assert "data-hu-unit" in HTML, "window values need HU units on CT"
+
+
+def check_status_bar():
+    for oid in ("sbEngine", "sbDocker", "sbVersion"):
+        assert f'id="{oid}"' in HTML, f"status bar missing #{oid}"
+    assert "/api/system" in HTML and "Research use only" in HTML
+
+
+def check_toolbar_tooltips():
+    assert 'id="shortcutsDialog"' in HTML, "no shortcuts dialog"
+    for bid in ("btnZoomIn", "btnZoomOut", "btnFit", "btnReset", "btnHelp", "btnPrev", "btnNext"):
+        assert f'id="{bid}"' in HTML and f'<wa-tooltip for="{bid}">' in HTML, f"#{bid} needs a tooltip with its shortcut"
+
+
 def run():
     checks = [v for k, v in globals().items() if k.startswith("check_")]
     failed = 0
