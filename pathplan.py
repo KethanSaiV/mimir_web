@@ -73,7 +73,7 @@ def plan(target_zyx, max_len_mm: float = 150.0, n_dirs: int = 600, top: int = 5)
     gsp = sp * step
     shape = np.array(body.shape)
 
-    # ponytail: ~2 mm search grid, so entry points are accurate to about one grid step;
+    # Note: ~2 mm search grid, so entry points are accurate to about one grid step;
     # resample the winners at full resolution if that ever matters.
     t = np.arange(0, max_len_mm + gsp.min(), gsp.min())          # (M,) mm along the ray
     dirs = _directions(n_dirs)                                    # (N, 3)

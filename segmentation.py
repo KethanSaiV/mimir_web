@@ -141,7 +141,7 @@ def cancel():
     if _container:
         subprocess.run(["docker", "kill", _container], capture_output=True, creationflags=_NO_WINDOW)
     if _proc is not None and _proc.poll() is None:
-        # ponytail: kills only the direct child; the source-only pip fallback may leave
+        # Note: kills only the direct child; the source-only pip fallback may leave
         # nnU-Net worker processes behind. Use `taskkill /T` if that shows up in practice.
         _proc.kill()
 
