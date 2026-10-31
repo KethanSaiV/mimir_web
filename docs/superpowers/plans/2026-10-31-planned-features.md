@@ -128,7 +128,9 @@ Real test data: `../dataset/MIMIR Dataset/3` (a DICOM series). Synthetic data: `
 
 ### Task 7: Honest copy (item 3) and wrap-up
 
-- [ ] Empty-state text, header "Gestures" pill and any remaining "planned"/"later release" copy describe exactly
+> Done: planned/later-release copy removed (check_ui now fails if it returns), README features, usage, API and structure updated. Final run: check_api 13/13, check_ui 8/8, node --check clean, headless Edge scenarios for Measure, Review, Register, Path Plan and Gesture all pass on series 3.
+
+- [x] Empty-state text, header "Gestures" pill and any remaining "planned"/"later release" copy describe exactly
       what now works. `tests/check_ui.py` updated so planned-system checks reflect reality.
-- [ ] README feature table updated (remove the "Planned" note for what shipped).
-- [ ] Final run of all checks; summary of what was built, what was verified by hand, and known limits.
+- [x] README feature table updated (remove the "Planned" note for what shipped).
+- [x] Final run of all checks; summary of what was built, what was verified by hand, and known limits.

@@ -20,9 +20,14 @@ MIMIR opens CT and MRI scans in DICOM format and lets you view them slice by sli
 | **Windowing** | Level and width sliders, with Brain, Lung and Bone presets. |
 | **Filters** | Gaussian denoise, median, sharpen, CLAHE, unsharp mask, edge enhance and normalize, each with an adjustable strength. Filters only change the display; the scan data is never modified. |
 | **3D view** | Builds a surface mesh with marching cubes on the server, then renders it in the app window with Three.js/WebGL. Has Bone, Soft Tissue and Skin presets and orbit, zoom and pan controls. |
+| **Measure** | Ruler (mm), angle (degrees) and elliptical ROI (mean, SD, min, max in HU, area in mm²) drawn on the slice. Measurements stay on their slice and are listed in the Measure card. |
+| **Review** | A report preview of the scan: patient and series details, segmented structure volumes (mL), measurements, the selected needle path and the current slice. **Export report** saves it as one self-contained HTML file. |
+| **Register** | Loads a second 3D series (for example an MRI) and registers it onto the open scan with SimpleITK: rigid then affine, Mattes mutual information, multi-resolution. Shows CT, the registered series, or a blend with adjustable weight. |
+| **Path plan** | Click a target inside the body on a CT slice; MIMIR ranks up to five straight needle paths from the skin (max 150 mm) that avoid bone and, after segmentation, organs other than the target one, scored on clearance and length. The chosen path is drawn on the slice and in the 3D view. A geometric sketch on a ~2 mm grid, not a surgical plan. |
+| **Gesture camera** | Optional and off by default. Hand tracking (MediaPipe, bundled, runs locally; video never leaves the machine) controls the 2D viewer: hold an open palm to arm, point and move to change slice, pinch to pan, pinch with both hands to zoom, hold a fist to lock. |
 | **AI segmentation** | Runs [TotalSegmentator](https://github.com/wasserth/TotalSegmentator) in Docker on the CPU (`--fast` mode) and draws up to 51 labelled organ and bone structures over the slices as a colour overlay. Opacity is adjustable and a legend lists the structures found. Uses the `total` task for CT and `total_mr` for MRI. |
 
-**Planned:** The Register, Path Plan, Measure and Review tabs and the gesture camera panel are placeholders in the UI. They don't do anything yet.
+Registration has been checked on synthetic and shifted copies of a CT series, not on a real CT/MRI pair. Gesture thresholds may need tuning for your camera and lighting.
 
 ## Download (Windows)
 
@@ -71,6 +76,11 @@ From source, segmentation uses Docker if it's installed. Otherwise it falls back
 3. Open the **Filter** tab to apply an image filter.
 4. Open the **3D View** tab to build a surface mesh, then pick an iso value or a preset.
 5. Open the **Segment** tab and click **Run Segmentation**. On a typical CPU it takes a few minutes, and progress appears in the log. When it finishes, turn the overlay on and adjust its opacity.
+6. Open **Measure**, pick Ruler, Angle or ROI and draw on the image. Esc returns the mouse to window/level.
+7. Open **Register**, load a second series folder and click **Run registration**; switch between CT, the registered series and a blend.
+8. Open **Path Plan**, click **Pick target**, then click the target on a CT slice; choose one of the ranked paths.
+9. Open **Review** to preview the report and **Export report…** to save it as HTML.
+10. Optionally click **Enable camera** in the right panel to use hand gestures on the 2D view.
 
 ## Releasing a new version
 
@@ -103,13 +113,18 @@ mimir_web/
 ├── preprocessing_engine.py  # Display-time image filters
 ├── mesh3d.py                # Marching-cubes mesh extraction + binary serialization
 ├── segmentation.py          # TotalSegmentator runner, label map and overlay colours
+├── measure.py               # ROI statistics, pixel spacing
+├── report.py                # Review summary + self-contained HTML report
+├── registration.py          # Rigid + affine mutual-information registration (SimpleITK)
+├── pathplan.py              # Needle path search (ray casting over a body/clearance grid)
 ├── requirements.txt
 ├── installer/               # Inno Setup script + app icon for the Windows installer
 ├── .github/workflows/       # release.yml: tag v* -> build installer -> GitHub Release
 └── static/
     ├── index.html           # Single-page UI
+    ├── features/            # One script per tool: measure, review, register, path, gesture (+ features.css)
     ├── assets/              # Logo
-    └── vendor/              # Three.js r160, OrbitControls, GSAP 3.12.5, fonts (bundled, works offline)
+    └── vendor/              # Three.js r160, OrbitControls, GSAP 3.12.5, MediaPipe tasks-vision 0.10.14, fonts (see vendor/README.md)
 ```
 
 ## How it works
@@ -145,7 +160,21 @@ App window (index.html)  ──HTTP──▶  FastAPI (server.py, 127.0.0.1:<fre
 | `GET`  | `/api/segment/status` | Segmentation progress log, errors and results |
 | `GET`  | `/api/segment/legend` | Names and colours of the structures found |
 | `POST` | `/api/segment/overlay` | `{show, opacity}`: control the segmentation overlay |
-| `GET`  | `/api/status` | Overall workstation state |
+| `POST` | `/api/measure/roi` | `{slice, cx, cy, rx, ry}`: statistics inside an elliptical ROI (image pixels) |
+| `GET`/`POST` | `/api/measure/list` | The page's measurements (kept for the report) |
+| `GET`  | `/api/review/summary` | Scan details, structure volumes, measurements, selected path |
+| `GET`  | `/api/review/report` | The HTML report (also the in-app preview) |
+| `POST` | `/api/review/export` | Save the report via the native save dialog |
+| `POST` | `/api/register/load-moving` | Folder dialog: load the series to register |
+| `POST` | `/api/register/run` | Start registration in the background |
+| `POST` | `/api/register/cancel` | Stop a running registration |
+| `GET`  | `/api/register/status` | Progress, metrics, current view mode |
+| `POST` | `/api/register/view` | `{mode, blend}`: 0 CT, 1 registered series, 2 blend |
+| `POST` | `/api/path/target` | `{slice, x, y}`: plan paths to this target |
+| `POST` | `/api/path/select` | `{index}`: choose a ranked path |
+| `GET`  | `/api/path/status` | Target, ranked paths, selection |
+| `POST` | `/api/path/clear` | Remove the target and paths |
+| `GET`  | `/api/status` | Overall workstation state (includes in-plane pixel spacing) |
 
 All `POST` requests must send `Content-Type: application/json`, and the server only answers to the `127.0.0.1`/`localhost` host. Both block other websites from driving the local server. Opening a scan returns `409` while segmentation is running.
 

@@ -7,8 +7,8 @@ on the user's own machine — nothing is uploaded anywhere. The window is
 just the UI; all DICOM/AI work happens in this process.
 
 Implemented: DICOM open, slice rendering (windowing, filters, overlay),
-3D mesh, segmentation. Registration / Path Planning / Gesture camera
-are planned.
+3D mesh, segmentation, measurements, review report, registration,
+needle path planning; the gesture camera runs in the page.
 """
 
 from __future__ import annotations

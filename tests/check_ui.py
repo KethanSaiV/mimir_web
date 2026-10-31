@@ -76,6 +76,7 @@ def check_feedback():
 
 def check_planned_systems():
     assert "data-planned" not in HTML, "every tool tab works now; none should be marked planned"
+    assert "later release" not in HTML and "not connected" not in HTML, "copy still promises unbuilt features"
     for tid in ("tab3d", "tabFilter", "tabSegment", "tabMeasure", "tabReview", "tabRegister", "tabPath"):
         tag = re.search(rf'<button[^>]*id="{tid}"[^>]*>', HTML).group(0)
         assert "data-needs-scan" in tag and 'aria-disabled="true"' in tag, f"#{tid} must start disabled"
