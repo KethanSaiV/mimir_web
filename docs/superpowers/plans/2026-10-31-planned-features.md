@@ -68,13 +68,15 @@ Real test data: `../dataset/MIMIR Dataset/3` (a DICOM series). Synthetic data: `
 
 ### Task 3: Review (report)
 
-- [ ] `report.py` + `GET /api/review/summary`: patient/study metadata, series dims + spacing, segmentation
+> Done: the main-area panel is a live preview of the exact HTML that Export saves (GET /api/review/report). Verified by check_review_summary_and_report and headless Edge on series 3 (preview, export file written). The native Save dialog itself was monkeypatched in tests, not clicked by hand. Measurement shapes are listed in the report, not drawn on the snapshot.
+
+- [x] `report.py` + `GET /api/review/summary`: patient/study metadata, series dims + spacing, segmentation
       structures present with volume in mL (voxel count × voxel volume), measurements (sent from the page or kept in
       `state.measurements`), selected path (Task 5, if present).
-- [ ] Review card + a main-area summary panel; **Export report** → native save dialog (reuse the
+- [x] Review card + a main-area summary panel; **Export report** → native save dialog (reuse the
       `_ask_path`-style dialog pattern) writing a self-contained HTML report with a PNG snapshot of the current slice.
       Header states "Research prototype — not for diagnostic use".
-- [ ] Enable REVIEW. Commit.
+- [x] Enable REVIEW. Commit.
 
 ### Task 4: Register (CT ↔ MRI)
 

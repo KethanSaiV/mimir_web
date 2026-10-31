@@ -276,7 +276,7 @@
     <button type="button" role="tab" aria-selected="false" tabindex="-1" data-i="4" data-planned="Registration"  aria-disabled="true" title="Planned for a later release">REGISTER</button>
     <button type="button" role="tab" aria-selected="false" tabindex="-1" data-i="5" data-planned="Path planning" aria-disabled="true" title="Planned for a later release">PATH PLAN</button>
     <button type="button" role="tab" aria-selected="false" tabindex="-1" data-i="6" id="tabMeasure" data-needs-scan aria-disabled="true">MEASURE</button>
-    <button type="button" role="tab" aria-selected="false" tabindex="-1" data-i="7" data-planned="Review"        aria-disabled="true" title="Planned for a later release">REVIEW</button>
+    <button type="button" role="tab" aria-selected="false" tabindex="-1" data-i="7" id="tabReview" data-needs-scan aria-disabled="true">REVIEW</button>
   </nav>
 
   <div class="lock-indicator" id="lockIndicator">Gestures: off</div>
@@ -367,6 +367,14 @@
       </div>
       <div class="feature-note" id="measureHint">Pick a tool, then draw on the image.</div>
       <div class="feature-list" id="measureList"></div>
+    </div>
+
+    <!-- Review (logic: features/review.js) -->
+    <div class="card" id="cardReview" style="display:none;">
+      <div class="card-title">Review</div>
+      <div class="feature-note" style="margin-top:0;">Scan details, segmented structure volumes, measurements and the selected needle path, with the current slice. Research prototype, not for diagnostic use.</div>
+      <button class="btn btn-primary" id="btnExportReport" style="width:100%; margin-top:12px;">Export report…</button>
+      <button class="btn" id="btnRefreshReport" style="width:100%; margin-top:8px;">Refresh preview</button>
     </div>
   </aside>
 
@@ -499,6 +507,7 @@
     tab3d:      ['card3d'],
     tabSegment: ['cardSegment'],
     tabMeasure: ['cardMeasure'],
+    tabReview:  ['cardReview'],
   };
   const ALL_TAB_CARD_IDS = Object.values(TAB_CARDS).flat();
 
@@ -1179,5 +1188,6 @@
 <!-- Feature modules: one file each under static/features/ -->
 <link rel="stylesheet" href="/features/features.css">
 <script src="/features/measure.js"></script>
+<script src="/features/review.js"></script>
 </body>
 </html>

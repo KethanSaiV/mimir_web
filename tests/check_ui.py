@@ -75,10 +75,10 @@ def check_feedback():
 
 
 def check_planned_systems():
-    for name in ("Registration", "Path planning", "Review"):
+    for name in ("Registration", "Path planning"):
         tag = re.search(rf'<button[^>]*data-planned="{name}"[^>]*>', HTML)
         assert tag and 'aria-disabled="true"' in tag.group(0), f"{name} tab must be data-planned + aria-disabled"
-    for tid in ("tab3d", "tabFilter", "tabSegment", "tabMeasure"):
+    for tid in ("tab3d", "tabFilter", "tabSegment", "tabMeasure", "tabReview"):
         tag = re.search(rf'<button[^>]*id="{tid}"[^>]*>', HTML).group(0)
         assert "data-needs-scan" in tag and 'aria-disabled="true"' in tag, f"#{tid} must start disabled"
     assert "Camera: active" not in HTML, "UI claims the camera is active"

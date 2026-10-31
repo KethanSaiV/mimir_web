@@ -134,6 +134,29 @@ def check_measure_roi_known_spacing():
     assert r.status_code == 400, f"ROI outside image -> {r.status_code}"
 
 
+def check_review_summary_and_report():
+    vol = np.zeros((4, 20, 20), np.float32)
+    _synthetic(vol, (0.5, 0.5, 2.0))  # voxel = 0.5 mL / 1000
+    state.seg_mask = np.zeros((4, 20, 20), np.int32)
+    state.seg_mask[:2, :10, :10] = 5  # 200 voxels of liver = 0.1 mL
+    state.measurements = [{"type": "ruler", "slice": 1, "text": "<b>12.0 mm"}]
+    try:
+        s = c.get("/api/review/summary").json()
+        html = c.get("/api/review/report").text
+        saved = Path(__file__).parent / "_report_check.html"
+        server._ask_save_path = lambda name: str(saved)
+        r = c.post("/api/review/export", headers=JSON)
+        written = saved.read_text(encoding="utf-8")
+        saved.unlink()
+    finally:
+        state.seg_mask = None
+    assert s["structures"] == [{"id": 5, "name": "Liver", "volume_ml": 0.1}], s["structures"]
+    assert s["dims"] == [4, 20, 20] and s["measurements"][0]["slice"] == 1, s
+    assert "not for diagnostic use" in html and "data:image/png;base64," in html, "report lacks disclaimer/snapshot"
+    assert "&lt;b&gt;12.0 mm" in html, "measurement text not escaped"
+    assert r.json()["path"] == str(saved) and "Liver" in written and "0.1 mL" in written, r.text
+
+
 def run():
     checks = [v for k, v in globals().items() if k.startswith("check_")]
     failed = 0

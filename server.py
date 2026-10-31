@@ -33,6 +33,7 @@ from dicom_io import load_dicom_path
 from render import render_current_slice_png
 from mesh3d import extract_mesh, suggest_iso_defaults, serialize_mesh
 from measure import spacing_xy, roi_stats
+import report
 
 __version__ = "0.1.0"  # bump before tagging a release: git tag v<this>
 
@@ -70,6 +71,12 @@ def _ask_path(dialog) -> str | None:
     """dialog: webview.FileDialog.OPEN or .FOLDER. Safe to call from
     request threads; pywebview marshals it onto the GUI thread."""
     paths = window.create_file_dialog(dialog)
+    return paths[0] if paths else None
+
+
+def _ask_save_path(filename: str) -> str | None:
+    paths = window.create_file_dialog(webview.FileDialog.SAVE, save_filename=filename,
+                                      file_types=("HTML report (*.html)",))
     return paths[0] if paths else None
 
 
@@ -262,6 +269,38 @@ def get_measurements():
 def set_measurements(body: MeasurementList):
     state.measurements = body.items
     return {"count": len(state.measurements)}
+
+
+# ══════════════════════════════════════════════════════════════
+#  Review / report
+# ══════════════════════════════════════════════════════════════
+
+def _report_html() -> str:
+    if state.raw_volume is None:
+        raise HTTPException(404, "No volume loaded.")
+    return report.report_html(report.summary(), render_current_slice_png())
+
+
+@app.get("/api/review/summary")
+def review_summary():
+    if state.raw_volume is None:
+        raise HTTPException(404, "No volume loaded.")
+    return report.summary()
+
+
+@app.get("/api/review/report")
+def review_report():
+    return Response(content=_report_html(), media_type="text/html")
+
+
+@app.post("/api/review/export")
+def review_export():
+    html = _report_html()
+    path = _ask_save_path("mimir-report.html")
+    if not path:
+        return {"cancelled": True}
+    Path(path).write_text(html, encoding="utf-8")
+    return {"path": path}
 
 
 # ══════════════════════════════════════════════════════════════
