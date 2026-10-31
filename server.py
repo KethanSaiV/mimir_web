@@ -35,7 +35,7 @@ from mesh3d import extract_mesh, suggest_iso_defaults, serialize_mesh
 from measure import spacing_xy, roi_stats
 import report
 
-__version__ = "0.1.0"  # bump before tagging a release: git tag v<this>
+__version__ = "0.2.0"  # bump before tagging a release: git tag v<this>
 
 # Resolves to the bundle dir when frozen by PyInstaller, so cwd doesn't matter.
 STATIC = Path(__file__).parent / "static"
